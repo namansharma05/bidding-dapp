@@ -1,6 +1,7 @@
 "use client";
 
 import { useWallet } from "@solana/wallet-adapter-react";
+import { OpeningBidModal } from "./components/OpeningBidModal";
 
 export default function Home() {
   const { publicKey, connected } = useWallet();
@@ -10,7 +11,7 @@ export default function Home() {
       {!connected ? (
         <p className="text-gray-400">Connect your wallet to get started.</p>
       ) : (
-        <p className="text-gray-400">Connected to {publicKey?.toBase58().slice(0, 4) + "..." + publicKey?.toBase58().slice(-4)}</p>
+        <OpeningBidModal />
       )}
     </div>
   );
