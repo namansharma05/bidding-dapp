@@ -21,8 +21,6 @@ export const UploadButton = ({
           const data = new FormData();
           data.set("file", file);
 
-          // client / browser ----> router handler ----> pinata server
-
           const uploadRequest = await fetch("/api/files", {
             method: "POST",
             body: data,
