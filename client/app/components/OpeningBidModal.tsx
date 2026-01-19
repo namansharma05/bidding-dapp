@@ -1,6 +1,8 @@
 "use client";
 import { FC, useRef, useState } from "react";
 import { UploadButton } from "./UploadButton";
+import { supabase } from "../utils/supabaseClient";
+import { useWallet } from "@solana/wallet-adapter-react";
 
 interface OpeningBidModalProps {
   isOpen: boolean;
@@ -14,6 +16,41 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
   const fileInputRef = useRef<HTMLInputElement | null>(null);
   const [isUploading, setIsUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
+  const { publicKey } = useWallet();
+  const [name, setName] = useState("");
+  const [description, setDescription] = useState("");
+  const [openingBid, setOpeningBid] = useState("");
+  const [duration, setDuration] = useState("");
+  const [minimumIncrement, setMinimumIncrement] = useState("");
+
+  const handleSubmit = async () => {
+    if (!publicKey) {
+      alert("Please connect your wallet");
+      return;
+    }
+    const { error } = await supabase.from("auctions").insert({
+      name,
+      description,
+      image_url: imageUrl,
+      opening_bid: parseFloat(openingBid),
+      duration: parseInt(duration),
+      minimum_increment: parseFloat(minimumIncrement),
+      creator_wallet: publicKey.toBase58(),
+    });
+
+    if (error) {
+      console.error(
+        "Error inserting data full:",
+        JSON.stringify(error, null, 2),
+      );
+      alert(
+        `Error creating auction: ${error.message || JSON.stringify(error)}`,
+      );
+    } else {
+      alert("Auction created successfully");
+      onClose();
+    }
+  };
   return (
     <>
       {isOpen && (
@@ -55,6 +92,8 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
                     type="text"
                     id="name"
                     placeholder="Enter Item Names"
+                    value={name}
+                    onChange={(e) => setName(e.target.value)}
                   />
                 </div>
                 <div className="flex flex-col">
@@ -66,6 +105,8 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
                     id="description"
                     placeholder="Enter Item Description"
                     rows={4}
+                    value={description}
+                    onChange={(e) => setDescription(e.target.value)}
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -77,6 +118,8 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
                     type="number"
                     id="openingBid"
                     placeholder="Enter Opening Bid"
+                    value={openingBid}
+                    onChange={(e) => setOpeningBid(e.target.value)}
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -88,6 +131,8 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
                     type="number"
                     id="duration"
                     placeholder="Enter Duration"
+                    value={duration}
+                    onChange={(e) => setDuration(e.target.value)}
                   />
                 </div>
                 <div className="flex items-center gap-2">
@@ -102,9 +147,14 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
                     type="number"
                     id="minimumIncrement"
                     placeholder="Enter Minimum Increment"
+                    value={minimumIncrement}
+                    onChange={(e) => setMinimumIncrement(e.target.value)}
                   />
                 </div>
-                <button className="bg-blue-500 text-white mt-6 font-semibold px-4 py-2 rounded hover:bg-blue-600 self-center">
+                <button
+                  onClick={handleSubmit}
+                  className="bg-blue-500 text-white mt-6 font-semibold px-4 py-2 rounded hover:bg-blue-600 self-center"
+                >
                   Submit
                 </button>
               </div>
