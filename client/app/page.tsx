@@ -13,6 +13,7 @@ interface Auction {
   created_at: string;
   duration: number;
   minimum_increment: number;
+  highest_bid: number;
   creator_wallet: string;
 }
 
@@ -123,8 +124,8 @@ export default function Home() {
                       className="text-gray-300"
                       title={auction.creator_wallet}
                     >
-                      {auction.creator_wallet.slice(0, 4)}...
-                      {auction.creator_wallet.slice(-4)}
+                      {auction.creator_wallet.slice(0, 6)}......
+                      {auction.creator_wallet.slice(-6)}
                     </span>
                   </div>
                   <p className="text-gray-400 text-sm mb-4 line-clamp-2 flex-grow">
@@ -145,13 +146,21 @@ export default function Home() {
                         {auction.minimum_increment} SOL
                       </span>
                     </div>
-                    <div className="flex justify-between items-center text-sm font-semibold mt-2">
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-400 text-xs">
+                        Opening Price:
+                      </span>
                       <span className="text-green-400 text-lg">
                         {auction.opening_bid} SOL
                       </span>
-                      <button className="bg-blue-600 px-4 py-2 rounded hover:bg-blue-700 text-white transition-colors text-xs font-bold uppercase tracking-wider">
-                        Place Bid
-                      </button>
+                    </div>
+                    <div className="flex justify-between items-center text-sm">
+                      <span className="text-gray-400 text-xs">
+                        Highest Bid:
+                      </span>
+                      <span className="text-green-400 text-lg">
+                        {auction.highest_bid || "No Bids"}
+                      </span>
                     </div>
                   </div>
                 </div>

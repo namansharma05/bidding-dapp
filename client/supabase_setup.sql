@@ -1,3 +1,4 @@
+drop table public.auctions;
 -- Create the table if it doesn't exist
 create table if not exists public.auctions (
   id uuid default gen_random_uuid() primary key,
@@ -8,8 +9,12 @@ create table if not exists public.auctions (
   opening_bid numeric,
   duration integer,
   minimum_increment numeric,
+  highest_bid numeric default 0,
   creator_wallet text
 );
+
+-- For existing tables, run this:
+-- alter table public.auctions add column if not exists highest_bid numeric default 0;
 
 -- Enable Row Level Security
 alter table public.auctions enable row level security;
