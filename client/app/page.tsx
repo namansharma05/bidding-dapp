@@ -110,7 +110,7 @@ export default function Home() {
                     <img
                       src={auction.image_url}
                       alt={auction.name}
-                      className="w-full h-48 object-cover rounded-md mb-4"
+                      className="w-full h-60 object-cover rounded-md mb-4"
                     />
                   ) : (
                     <div className="w-full h-48 bg-gray-700 rounded-md mb-4 flex items-center justify-center text-gray-400">
@@ -119,7 +119,7 @@ export default function Home() {
                   )}
                   <h3 className="text-xl font-bold mb-1">{auction.name}</h3>
                   <div className="text-xs text-gray-500 mb-2">
-                    Created by:{" "}
+                    Listed by:{" "}
                     <span
                       className="text-gray-300"
                       title={auction.creator_wallet}
