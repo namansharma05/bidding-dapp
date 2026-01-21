@@ -10,7 +10,10 @@ declare_id!("D7rhKbV2vR28tjtKEf7w1dk3TdyFmDKq2GouMHcSJSGs");
 pub mod bidding {
     use super::*;
 
-    pub fn initialize_counter(_ctx: Context<InitializeCounter>) -> Result<()> {
+    pub fn initialize_counter(ctx: Context<InitializeCounter>) -> Result<()> {
+        let item_counter_account = &mut ctx.accounts.item_counter_account;
+        item_counter_account.item_count = 1;
+        item_counter_account.authority = ctx.accounts.authority.key();
         Ok(())
     }
 
