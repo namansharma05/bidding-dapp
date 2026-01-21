@@ -2,7 +2,11 @@
 import { FC, useRef, useState } from "react";
 import { UploadButton } from "./UploadButton";
 import { supabase } from "../utils/supabaseClient";
-import { useWallet } from "@solana/wallet-adapter-react";
+import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
+import * as anchor from "@coral-xyz/anchor";
+import IDL_JSON from "../idl/bidding.json";
+import { Bidding } from "../idl/bidding";
+import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 interface OpeningBidModalProps {
   isOpen: boolean;
@@ -23,11 +27,69 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
   const [duration, setDuration] = useState("");
   const [minimumIncrement, setMinimumIncrement] = useState("");
 
+  const wallet = useAnchorWallet();
+
+  const getProvider = async () => {
+    if (!wallet) return null;
+
+    const network = "http://127.0.0.1:8899";
+    const connection = new Connection(network, "processed");
+
+    const provider = new anchor.AnchorProvider(
+      connection,
+      wallet,
+      anchor.AnchorProvider.defaultOptions(),
+    );
+    return provider;
+  };
+
   const handleSubmit = async () => {
     if (!publicKey) {
       alert("Please connect your wallet");
       return;
     }
+
+    const provider = await getProvider();
+    if (!provider) throw "Provider is null";
+    const tx = await provider.connection.requestAirdrop(
+      publicKey,
+      10 * LAMPORTS_PER_SOL,
+    );
+    await provider.connection.confirmTransaction(tx);
+
+    const program = new anchor.Program(IDL_JSON as Bidding, provider);
+
+    const [itemCounterAccountPda, itemCounterAccountBump] =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("item_counter")],
+        program.programId,
+      );
+
+    await program.methods
+      .initializeCounter()
+      .accounts({
+        authority: publicKey,
+        itemCounterAccount: itemCounterAccountPda,
+      })
+      .rpc();
+
+    const itemCounterAccountData = await program.account.itemCounter.fetch(
+      itemCounterAccountPda,
+    );
+
+    const [itemAccountPda, itemAccountBump] =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("item"),
+          new anchor.BN(itemCounterAccountData.itemCount).toArrayLike(
+            Buffer,
+            "le",
+            2,
+          ),
+        ],
+        program.programId,
+      );
+
     const { error } = await supabase.from("auctions").insert({
       name,
       description,
@@ -47,6 +109,14 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
         `Error creating auction: ${error.message || JSON.stringify(error)}`,
       );
     } else {
+      await program.methods
+        .initializeItem(name, description, imageUrl, new anchor.BN(openingBid))
+        .accounts({
+          authority: publicKey,
+          itemCounterAccount: itemCounterAccountPda,
+          itemAccount: itemAccountPda,
+        })
+        .rpc();
       alert("Auction created successfully");
       onClose();
     }
