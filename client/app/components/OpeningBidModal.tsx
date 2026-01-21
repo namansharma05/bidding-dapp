@@ -6,7 +6,7 @@ import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
 import * as anchor from "@coral-xyz/anchor";
 import IDL_JSON from "../idl/bidding.json";
 import { Bidding } from "../idl/bidding";
-import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 
 interface OpeningBidModalProps {
   isOpen: boolean;
