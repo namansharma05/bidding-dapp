@@ -3,6 +3,7 @@ import { useState, useEffect } from "react";
 import { useWallet } from "@solana/wallet-adapter-react";
 import { OpeningBidModal } from "./components/OpeningBidModal";
 import { supabase } from "./utils/supabaseClient";
+import { AuctionCard } from "./components/AuctionCard";
 
 interface Auction {
   id: string;
@@ -16,47 +17,6 @@ interface Auction {
   highest_bid: number;
   creator_wallet: string;
 }
-
-const Countdown = ({
-  createdAt,
-  duration,
-}: {
-  createdAt: string;
-  duration: number;
-}) => {
-  const [timeLeft, setTimeLeft] = useState("");
-
-  useEffect(() => {
-    const interval = setInterval(() => {
-      const now = new Date().getTime();
-      const endTime = new Date(createdAt).getTime() + duration * 1000;
-      const distance = endTime - now;
-
-      if (distance < 0) {
-        setTimeLeft("Ended");
-        clearInterval(interval);
-        return;
-      }
-
-      const hours = Math.floor(
-        (distance % (1000 * 60 * 60 * 24)) / (1000 * 60 * 60),
-      );
-      const minutes = Math.floor((distance % (1000 * 60 * 60)) / (1000 * 60));
-      const seconds = Math.floor((distance % (1000 * 60)) / 1000);
-
-      setTimeLeft(
-        `${hours.toString().padStart(2, "0")}:${minutes
-          .toString()
-          .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`,
-      );
-    }, 1000);
-
-    return () => clearInterval(interval);
-  }, [createdAt, duration]);
-
-  return <span className="font-mono text-yellow-400">{timeLeft}</span>;
-};
-
 export default function Home() {
   const { publicKey, connected } = useWallet();
   const [isModalOpen, setIsModalOpen] = useState(false);
@@ -79,7 +39,6 @@ export default function Home() {
 
     fetchAuctions();
   }, [isModalOpen]);
-
   return (
     <div className="flex flex-col items-center min-h-screen py-10 bg-gray-900 text-white">
       <h1 className="text-4xl font-bold mb-8">
@@ -102,68 +61,7 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {auctions.map((auction) => (
-                <div
-                  key={auction.id}
-                  className="bg-gray-800 rounded-lg p-4 shadow-lg hover:shadow-xl transition-shadow border border-gray-700 flex flex-col"
-                >
-                  {auction.image_url ? (
-                    <img
-                      src={auction.image_url}
-                      alt={auction.name}
-                      className="w-full h-60 object-cover rounded-md mb-4"
-                    />
-                  ) : (
-                    <div className="w-full h-48 bg-gray-700 rounded-md mb-4 flex items-center justify-center text-gray-400">
-                      No Image
-                    </div>
-                  )}
-                  <h3 className="text-xl font-bold mb-1">{auction.name}</h3>
-                  <div className="text-xs text-gray-500 mb-2">
-                    Listed by:{" "}
-                    <span
-                      className="text-gray-300"
-                      title={auction.creator_wallet}
-                    >
-                      {auction.creator_wallet.slice(0, 6)}......
-                      {auction.creator_wallet.slice(-6)}
-                    </span>
-                  </div>
-                  <p className="text-gray-400 text-sm mb-4 line-clamp-2 flex-grow">
-                    {auction.description}
-                  </p>
-
-                  <div className="border-t border-gray-700 pt-3 space-y-2">
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Time Left:</span>
-                      <Countdown
-                        createdAt={auction.created_at}
-                        duration={auction.duration}
-                      />
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400">Min. Increment:</span>
-                      <span className="text-gray-200">
-                        {auction.minimum_increment} SOL
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400 text-xs">
-                        Opening Price:
-                      </span>
-                      <span className="text-green-400 text-lg">
-                        {auction.opening_bid} SOL
-                      </span>
-                    </div>
-                    <div className="flex justify-between items-center text-sm">
-                      <span className="text-gray-400 text-xs">
-                        Highest Bid:
-                      </span>
-                      <span className="text-green-400 text-lg">
-                        {auction.highest_bid || "No Bids"}
-                      </span>
-                    </div>
-                  </div>
-                </div>
+                <AuctionCard key={auction.id} {...auction} />
               ))}
               {auctions.length === 0 && (
                 <p className="col-span-full text-center text-gray-500">

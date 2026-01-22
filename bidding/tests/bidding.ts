@@ -54,7 +54,7 @@ describe("  solana bidding dapp test cases",() => {
     const imageUrl = "https://example.com/image.jpg";
     const price = 100;
     
-    
+    console.log("    admin wallet public key is", adminWallet.publicKey.toBase58());
     const tx = await program.methods.initializeItem(name, description, imageUrl, new anchor.BN(price)).accounts({
       authority: adminWallet.publicKey,
       itemCounterAccount: itemCounterAccountPda,
@@ -67,4 +67,12 @@ describe("  solana bidding dapp test cases",() => {
     console.log("    item counter account pda", itemCounterAccountPda.toBase58());
     console.log("    item account pda", itemAccountPda.toBase58());
   });
+
+  // it("should return all the accounts associated with the wallet address", async() => {
+  //   const accounts = await provider.connection.getAccountInfo(adminWallet.publicKey);
+  //   // accounts.forEach(element => {
+  //   //   console.log("    account pda/public key associated with admin wallet is",element.pubkey.toBase58());
+  //   // });
+  //   console.log("    all the associated accounts are", accounts);
+  // })
 });
