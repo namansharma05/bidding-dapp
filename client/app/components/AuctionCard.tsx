@@ -24,15 +24,14 @@ const Countdown = ({
   const [timeLeft, setTimeLeft] = useState("");
 
   useEffect(() => {
-    const interval = setInterval(() => {
+    const calculateTimeLeft = () => {
       const now = new Date().getTime();
       const endTime = new Date(createdAt).getTime() + duration * 1000;
       const distance = endTime - now;
 
       if (distance < 0) {
         setTimeLeft("Ended");
-        clearInterval(interval);
-        return;
+        return true;
       }
 
       const hours = Math.floor(
@@ -46,6 +45,15 @@ const Countdown = ({
           .toString()
           .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`,
       );
+      return false;
+    };
+
+    if (calculateTimeLeft()) return;
+
+    const interval = setInterval(() => {
+      if (calculateTimeLeft()) {
+        clearInterval(interval);
+      }
     }, 1000);
 
     return () => clearInterval(interval);

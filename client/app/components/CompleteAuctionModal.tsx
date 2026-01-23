@@ -22,22 +22,23 @@ interface CompleteAuctionModalProps {
 const Countdown = ({
   createdAt,
   duration,
+  onEnd,
 }: {
   createdAt: string;
   duration: number;
+  onEnd?: () => void;
 }) => {
   const [timeLeft, setTimeLeft] = useState("");
-
   useEffect(() => {
-    const interval = setInterval(() => {
+    const calculateTimeLeft = () => {
       const now = new Date().getTime();
       const endTime = new Date(createdAt).getTime() + duration * 1000;
       const distance = endTime - now;
 
       if (distance < 0) {
         setTimeLeft("Ended");
-        clearInterval(interval);
-        return;
+        onEnd?.();
+        return true;
       }
 
       const hours = Math.floor(
@@ -51,12 +52,22 @@ const Countdown = ({
           .toString()
           .padStart(2, "0")}:${seconds.toString().padStart(2, "0")}`,
       );
+      return false;
+    };
+
+    // Initial check
+    if (calculateTimeLeft()) return;
+
+    const interval = setInterval(() => {
+      if (calculateTimeLeft()) {
+        clearInterval(interval);
+      }
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [createdAt, duration]);
+  }, [createdAt, duration, onEnd]);
 
-  return <span className="font-mono text-yellow-400">{timeLeft}</span>;
+  return <div className="text-yellow-400">{timeLeft}</div>;
 };
 
 export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
@@ -64,7 +75,12 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
   showCompleteActiveAuction,
   setShowCompleteActiveAuction,
 }) => {
-  console.log("showCompleteActiveAuction value is ", showCompleteActiveAuction);
+  const [isEnded, setIsEnded] = useState(() => {
+    const now = new Date().getTime();
+    const endTime =
+      new Date(auction.created_at).getTime() + auction.duration * 1000;
+    return endTime - now < 0;
+  });
   return (
     <>
       {showCompleteActiveAuction && (
@@ -86,56 +102,67 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
                   className="w-70 h-70 object-cover rounded-md mb-4"
                 />
               </div>
-              <div className="border-1 pl-20">
-                <div className="flex jutify-between">
+              <div className="pl-20">
+                <div className="flex justify-between">
                   <div className="flex items-center">
-                    <span className="text-gray-400 text-lg">Highest Bid:</span>
-                    <span className="text-green-400 text-lg">
+                    <div className="text-gray-400 text-lg pr-2">
+                      Highest Bid:
+                    </div>
+                    <div className="text-green-400 text-lg">
                       {auction.highest_bid || "No Bids"}
-                    </span>
+                    </div>
                   </div>
-                  <div className="flex justify-end items-end text-lg">
+                  <div className="text-2xl justify-end">
                     <Countdown
                       createdAt={auction.created_at}
                       duration={auction.duration}
+                      onEnd={() => setIsEnded(true)}
                     />
                   </div>
                 </div>
-                <div className="text-lg text-gray-500">
-                  Listed by:{" "}
+                <div className="text-lg text-gray-400">
+                  Listed by:
                   <span
-                    className="text-gray-300"
+                    className="text-gray-300 pl-2"
                     title={auction.creator_wallet}
                   >
                     {auction.creator_wallet.slice(0, 6)}......
                     {auction.creator_wallet.slice(-6)}
                   </span>
                 </div>
-                <h3 className="text-lg font-bold">
-                  Item Name : {auction.name}
-                </h3>
                 <div className="flex items-center">
-                  <span className="text-gray-400 text-lg">Opening Price:</span>
-                  <span className="text-green-400 text-lg">
+                  <div className="text-lg text-gray-400 pr-2">Item Name:</div>
+                  <div className="text-lg text-gray-300">{auction.name}</div>
+                </div>
+                <div className="flex items-center">
+                  <div className="text-gray-400 text-lg pr-2">
+                    Opening Price:
+                  </div>
+                  <div className="text-green-500 text-lg">
                     {auction.opening_bid} SOL
-                  </span>
+                  </div>
                 </div>
-                <div className="items-center text-lg">
-                  <span className="text-gray-400">Min. Increment:</span>
-                  <span className="text-gray-200">
+                <div className="flex items-center text-lg">
+                  <div className="text-gray-400 pr-2">Min. Increment:</div>
+                  <div className="text-gray-200">
                     {auction.minimum_increment} SOL
-                  </span>
+                  </div>
                 </div>
-                <div className="flex justify-between items-center">
-                  <span className="text-gray-400 text-lg">
-                    Item Description:
-                  </span>
-                  <span className="text-gray-400 text-lg">
+                <div className="">
+                  <div className="text-gray-400 text-lg">Item Description:</div>
+                  <div className="text-gray-300 text-lg">
                     {auction.description}
-                  </span>
+                  </div>
                 </div>
-                <button className="BidButton border-1 rounded-sm p-2">
-                  Bid
+                <button
+                  disabled={isEnded}
+                  className={`flex justify-end rounded-sm p-2 border-1 transition-colors ${
+                    isEnded
+                      ? "text-gray-600 border-gray-700 cursor-not-allowed bg-gray-800/50"
+                      : "text-gray-300 border-gray-300 hover:bg-gray-700 active:bg-gray-600"
+                  }`}
+                >
+                  {isEnded ? "Auction Ended" : "Bid"}
                 </button>
               </div>
             </div>
