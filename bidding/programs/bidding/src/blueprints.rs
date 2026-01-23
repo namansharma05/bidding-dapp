@@ -10,8 +10,10 @@ pub struct Item {
     pub description: String,
     #[max_len(500)]
     pub image_url: String,
-    pub price: u64,
+    pub opening_price: u64,
     pub item_id: u16,
+    pub highest_bid: u64,
+    pub minimum_bid: u64,
 }
 
 #[account]
@@ -19,4 +21,10 @@ pub struct Item {
 pub struct ItemCounter {
     pub authority: Pubkey,
     pub item_count: u16,
+}
+
+#[account]
+#[derive(InitSpace)]
+pub struct Escrow {
+    pub authority: Pubkey,
 }

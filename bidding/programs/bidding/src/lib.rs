@@ -22,18 +22,47 @@ pub mod bidding {
         name: String,
         description: String,
         image_url: String,
-        price: u64,
+        opening_price: u64,
+        minimum_bid: u64,
     ) -> Result<()> {
+        let escrow_account = &mut ctx.accounts.escrow_account;
+        escrow_account.authority = ctx.accounts.authority.key();
+
         let item_counter = &mut ctx.accounts.item_counter_account;
+        let current_count = item_counter.item_count;
         item_counter.item_count += 1;
 
         let item_account = &mut ctx.accounts.item_account;
-        item_account.item_id = item_counter.item_count;
+        item_account.item_id = current_count;
         item_account.authority = ctx.accounts.authority.key();
         item_account.name = name.clone();
         item_account.description = description.clone();
         item_account.image_url = image_url.clone();
-        item_account.price = price;
+        item_account.opening_price = opening_price;
+        item_account.minimum_bid = minimum_bid;
+        item_account.highest_bid = 0;
+        Ok(())
+    }
+
+    pub fn bid(ctx: Context<Bid>, _item_id: u16) -> Result<()> {
+        let item_account = &mut ctx.accounts.item_account;
+        let bid_amount;
+        if item_account.opening_price > item_account.highest_bid {
+            bid_amount = item_account.opening_price + item_account.minimum_bid;
+        } else {
+            bid_amount = item_account.highest_bid + item_account.minimum_bid;
+        }
+        item_account.highest_bid = bid_amount;
+
+        let cpi_context = CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: ctx.accounts.authority.to_account_info(),
+                to: ctx.accounts.escrow_account.to_account_info(),
+            },
+        );
+        anchor_lang::system_program::transfer(cpi_context, bid_amount)?;
+
         Ok(())
     }
 }
