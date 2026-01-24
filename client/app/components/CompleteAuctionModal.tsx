@@ -1,4 +1,11 @@
+import { useAnchorWallet } from "@solana/wallet-adapter-react";
+import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
 import { FC, useEffect, useState } from "react";
+import * as anchor from "@coral-xyz/anchor";
+import { useWallet } from "@solana/wallet-adapter-react";
+import IDL_JSON from "../idl/bidding.json";
+import { Bidding } from "../idl/bidding";
+import { supabase } from "../utils/supabaseClient";
 
 interface Auction {
   id: string;
@@ -11,6 +18,7 @@ interface Auction {
   minimum_increment: number;
   highest_bid: number;
   creator_wallet: string;
+  item_id: number;
 }
 
 interface CompleteAuctionModalProps {
@@ -81,6 +89,117 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
       new Date(auction.created_at).getTime() + auction.duration * 1000;
     return endTime - now < 0;
   });
+  const { publicKey } = useWallet();
+
+  const wallet = useAnchorWallet();
+
+  const getProvider = async () => {
+    if (!wallet) return null;
+
+    const network = "http://127.0.0.1:8899";
+    const connection = new Connection(network, "processed");
+
+    const provider = new anchor.AnchorProvider(
+      connection,
+      wallet,
+      anchor.AnchorProvider.defaultOptions(),
+    );
+    return provider;
+  };
+
+  const handleBidding = async () => {
+    if (!publicKey) {
+      alert("Please connect your wallet");
+      return;
+    }
+
+    const provider = await getProvider();
+    if (!provider) throw "Provider is null";
+    const tx = await provider.connection.requestAirdrop(
+      publicKey,
+      10 * LAMPORTS_PER_SOL,
+    );
+    await provider.connection.confirmTransaction(tx);
+
+    const program = new anchor.Program(IDL_JSON as Bidding, provider);
+
+    const [itemCounterAccountPda, itemCounterAccountBump] =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [Buffer.from("item_counter")],
+        program.programId,
+      );
+    const itemCounterInfo = await provider.connection.getAccountInfo(
+      itemCounterAccountPda,
+    );
+    if (!itemCounterInfo) {
+      await program.methods
+        .initializeCounter()
+        .accounts({
+          authority: publicKey,
+          itemCounterAccount: itemCounterAccountPda,
+        } as any)
+        .rpc();
+    }
+
+    const [itemAccountPda, itemAccountBump] =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("item"),
+          new anchor.BN(auction.item_id).toArrayLike(Buffer, "le", 2),
+        ],
+        program.programId,
+      );
+
+    const [escrowAccountPda, escrowAccountBump] =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("escrow"),
+          publicKey.toBuffer(),
+          new anchor.BN(auction.item_id).toArrayLike(Buffer, "le", 2),
+        ],
+        program.programId,
+      );
+    console.log(
+      "escrow Account balance before bidding: ",
+      await provider.connection.getBalance(escrowAccountPda),
+    );
+    const highestBid =
+      auction.highest_bid == 0
+        ? auction.opening_bid
+        : auction.highest_bid + auction.minimum_increment;
+    const { error } = await supabase
+      .from("auctions")
+      .update({
+        highest_bid: highestBid,
+      })
+      .eq("id", auction.id);
+
+    if (error) {
+      console.error(
+        "Error updating data full:",
+        JSON.stringify(error, null, 2),
+      );
+      alert(
+        `Error updating auction: ${error.message || JSON.stringify(error)}`,
+      );
+    } else {
+      await program.methods
+        .bid(auction.item_id)
+        .accounts({
+          authority: publicKey,
+          itemCounterAccount: itemCounterAccountPda,
+          itemAccount: itemAccountPda,
+          escrowAccount: escrowAccountPda,
+        })
+        .rpc();
+      alert("Auction updated successfully");
+      console.log(
+        "escrow Account balance after bidding: ",
+        await provider.connection.getBalance(escrowAccountPda),
+      );
+      setShowCompleteActiveAuction();
+    }
+  };
   return (
     <>
       {showCompleteActiveAuction && (
@@ -95,12 +214,8 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
               </button>
             </div>
             <div className="flex justify-evenly items-center">
-              <div>
-                <img
-                  src={auction.image_url}
-                  alt={auction.name}
-                  className="w-70 h-70 object-cover rounded-md mb-4"
-                />
+              <div className="w-full object-cover rounded-md mb-4">
+                <img src={auction.image_url} alt={auction.name} />
               </div>
               <div className="pl-20">
                 <div className="flex justify-between">
@@ -156,6 +271,7 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
                 </div>
                 <button
                   disabled={isEnded}
+                  onClick={handleBidding}
                   className={`flex justify-end rounded-sm p-2 border-1 transition-colors ${
                     isEnded
                       ? "text-gray-600 border-gray-700 cursor-not-allowed bg-gray-800/50"

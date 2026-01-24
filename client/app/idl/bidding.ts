@@ -14,6 +14,85 @@ export type Bidding = {
   },
   "instructions": [
     {
+      "name": "bid",
+      "discriminator": [
+        199,
+        56,
+        85,
+        38,
+        146,
+        243,
+        37,
+        158
+      ],
+      "accounts": [
+        {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "itemAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  116,
+                  101,
+                  109
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "itemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrowAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "item_account.authority",
+                "account": "item"
+              },
+              {
+                "kind": "arg",
+                "path": "itemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "itemId",
+          "type": "u16"
+        }
+      ]
+    },
+    {
       "name": "initializeCounter",
       "discriminator": [
         67,
@@ -129,6 +208,34 @@ export type Bidding = {
           }
         },
         {
+          "name": "escrowAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "authority"
+              },
+              {
+                "kind": "account",
+                "path": "item_counter_account.item_count",
+                "account": "itemCounter"
+              }
+            ]
+          }
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -147,13 +254,30 @@ export type Bidding = {
           "type": "string"
         },
         {
-          "name": "price",
+          "name": "openingPrice",
+          "type": "u64"
+        },
+        {
+          "name": "minimumBid",
           "type": "u64"
         }
       ]
     }
   ],
   "accounts": [
+    {
+      "name": "escrow",
+      "discriminator": [
+        31,
+        213,
+        123,
+        187,
+        186,
+        22,
+        218,
+        155
+      ]
+    },
     {
       "name": "item",
       "discriminator": [
@@ -183,6 +307,18 @@ export type Bidding = {
   ],
   "types": [
     {
+      "name": "escrow",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "authority",
+            "type": "pubkey"
+          }
+        ]
+      }
+    },
+    {
       "name": "item",
       "type": {
         "kind": "struct",
@@ -204,12 +340,20 @@ export type Bidding = {
             "type": "string"
           },
           {
-            "name": "price",
+            "name": "openingPrice",
             "type": "u64"
           },
           {
             "name": "itemId",
             "type": "u16"
+          },
+          {
+            "name": "highestBid",
+            "type": "u64"
+          },
+          {
+            "name": "minimumBid",
+            "type": "u64"
           }
         ]
       }
