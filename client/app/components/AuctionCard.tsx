@@ -13,6 +13,7 @@ interface Auction {
   highest_bid: number;
   creator_wallet: string;
   item_id: number;
+  highest_bidder: string;
 }
 
 const Countdown = ({

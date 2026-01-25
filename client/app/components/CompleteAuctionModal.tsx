@@ -19,6 +19,7 @@ interface Auction {
   highest_bid: number;
   creator_wallet: string;
   item_id: number;
+  highest_bidder: string;
 }
 
 interface CompleteAuctionModalProps {
@@ -172,7 +173,8 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
     const { error } = await supabase
       .from("auctions")
       .update({
-        highest_bid: highestBid,
+        highest_bid: Math.ceil((highestBid + Number.EPSILON) * 100) / 100,
+        highest_bidder: publicKey?.toBase58(),
       })
       .eq("id", auction.id);
 
@@ -207,7 +209,7 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
     <>
       {showCompleteActiveAuction && (
         <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50">
-          <div className="w-4xl bg-gray-800 text-black p-5 rounded-lg">
+          <div className="w-4xl bg-gray-800 text-black p-10 rounded-lg">
             <div className="flex text-black justify-end mb-4">
               <button
                 className="text-lg text-white rounded-full font-bold cursor-pointer"
@@ -216,18 +218,22 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
                 X
               </button>
             </div>
-            <div className="flex justify-evenly items-center">
-              <div className="w-full object-cover rounded-md mb-4">
-                <img src={auction.image_url} alt={auction.name} />
+            <div className="flex flex-row justify-evenly items-center">
+              <div className="w-full object-cover rounded-md overflow-hidden mb-4">
+                <img
+                  className="w-[90%] rounded-md"
+                  src={auction.image_url}
+                  alt={auction.name}
+                />
               </div>
-              <div className="pl-20">
+              <div className="w-[100%]">
                 <div className="flex justify-between">
                   <div className="flex items-center">
                     <div className="text-gray-400 text-lg pr-2">
                       Highest Bid:
                     </div>
                     <div className="text-green-400 text-lg">
-                      {auction.highest_bid || "No Bids"}
+                      {auction.highest_bid + " SOL" || "No Bids"}
                     </div>
                   </div>
                   <div className="text-2xl justify-end">
@@ -246,6 +252,16 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
                   >
                     {auction.creator_wallet.slice(0, 6)}......
                     {auction.creator_wallet.slice(-6)}
+                  </span>
+                </div>
+                <div className="text-lg text-gray-400">
+                  Highest bid by:
+                  <span
+                    className="text-gray-300 pl-2"
+                    title={auction.highest_bidder}
+                  >
+                    {auction.highest_bidder.slice(0, 6)}......
+                    {auction.highest_bidder.slice(-6)}
                   </span>
                 </div>
                 <div className="flex items-center">
