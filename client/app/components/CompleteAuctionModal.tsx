@@ -1,5 +1,5 @@
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
 import { FC, useEffect, useState } from "react";
 import * as anchor from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -25,6 +25,7 @@ interface CompleteAuctionModalProps {
   auction: Auction;
   showCompleteActiveAuction: boolean;
   setShowCompleteActiveAuction: () => void;
+  onBidPlaced: () => void;
 }
 
 const Countdown = ({
@@ -82,6 +83,7 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
   auction,
   showCompleteActiveAuction,
   setShowCompleteActiveAuction,
+  onBidPlaced,
 }) => {
   const [isEnded, setIsEnded] = useState(() => {
     const now = new Date().getTime();
@@ -154,7 +156,7 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
       anchor.web3.PublicKey.findProgramAddressSync(
         [
           Buffer.from("escrow"),
-          publicKey.toBuffer(),
+          new PublicKey(auction.creator_wallet).toBuffer(),
           new anchor.BN(auction.item_id).toArrayLike(Buffer, "le", 2),
         ],
         program.programId,
@@ -197,6 +199,7 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
         "escrow Account balance after bidding: ",
         await provider.connection.getBalance(escrowAccountPda),
       );
+      onBidPlaced();
       setShowCompleteActiveAuction();
     }
   };

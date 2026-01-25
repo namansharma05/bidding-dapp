@@ -63,7 +63,10 @@ const Countdown = ({
   return <span className="font-mono text-yellow-400">{timeLeft}</span>;
 };
 
-export const AuctionCard: FC<Auction> = (auction) => {
+export const AuctionCard: FC<{
+  auction: Auction;
+  onBidPlaced: () => void;
+}> = ({ auction, onBidPlaced }) => {
   const [showCompleteActiveAuction, setShowCompleteActiveAuction] =
     useState(false);
   return (
@@ -128,6 +131,7 @@ export const AuctionCard: FC<Auction> = (auction) => {
         auction={auction}
         showCompleteActiveAuction={showCompleteActiveAuction}
         setShowCompleteActiveAuction={() => setShowCompleteActiveAuction(false)}
+        onBidPlaced={onBidPlaced}
       />
     </>
   );

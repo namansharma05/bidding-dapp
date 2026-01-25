@@ -22,6 +22,7 @@ export default function Home() {
   const { publicKey, connected } = useWallet();
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [auctions, setAuctions] = useState<Auction[]>([]);
+  const [refreshTrigger, setRefreshTrigger] = useState(0);
 
   useEffect(() => {
     const fetchAuctions = async () => {
@@ -39,7 +40,7 @@ export default function Home() {
     };
 
     fetchAuctions();
-  }, [isModalOpen]);
+  }, [isModalOpen, refreshTrigger]);
   return (
     <div className="flex flex-col items-center min-h-screen py-10 bg-gray-900 text-white">
       <h1 className="text-4xl font-bold mb-8">
@@ -62,7 +63,11 @@ export default function Home() {
 
             <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
               {auctions.map((auction) => (
-                <AuctionCard key={auction.id} {...auction} />
+                <AuctionCard
+                  key={auction.id}
+                  auction={auction}
+                  onBidPlaced={() => setRefreshTrigger((prev) => prev + 1)}
+                />
               ))}
               {auctions.length === 0 && (
                 <p className="col-span-full text-center text-gray-500">
