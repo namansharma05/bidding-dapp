@@ -47,8 +47,8 @@ pub mod bidding {
     pub fn bid(ctx: Context<Bid>, _item_id: u16) -> Result<()> {
         let item_account = &mut ctx.accounts.item_account;
         let bid_amount;
-        if item_account.opening_price > item_account.highest_bid {
-            bid_amount = item_account.opening_price + item_account.minimum_bid;
+        if item_account.highest_bid == 0 {
+            bid_amount = item_account.opening_price;
         } else {
             bid_amount = item_account.highest_bid + item_account.minimum_bid;
         }

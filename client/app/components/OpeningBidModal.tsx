@@ -65,13 +65,18 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
         program.programId,
       );
 
-    await program.methods
-      .initializeCounter()
-      .accounts({
-        authority: publicKey,
-        itemCounterAccount: itemCounterAccountPda,
-      })
-      .rpc();
+    const itemCounterInfo = await provider.connection.getAccountInfo(
+      itemCounterAccountPda,
+    );
+    if (!itemCounterInfo) {
+      await program.methods
+        .initializeCounter()
+        .accounts({
+          authority: publicKey,
+          itemCounterAccount: itemCounterAccountPda,
+        } as any)
+        .rpc();
+    }
 
     const itemCounterAccountData = await program.account.itemCounter.fetch(
       itemCounterAccountPda,
@@ -90,6 +95,20 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
         program.programId,
       );
 
+    const [escrowAccountPda, escrowAccountBump] =
+      anchor.web3.PublicKey.findProgramAddressSync(
+        [
+          Buffer.from("escrow"),
+          publicKey.toBuffer(),
+          new anchor.BN(itemCounterAccountData.itemCount).toArrayLike(
+            Buffer,
+            "le",
+            2,
+          ),
+        ],
+        program.programId,
+      );
+
     const { error } = await supabase.from("auctions").insert({
       name,
       description,
@@ -98,6 +117,7 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
       duration: parseInt(duration),
       minimum_increment: parseFloat(minimumIncrement),
       creator_wallet: publicKey.toBase58(),
+      item_id: parseFloat(itemCounterAccountData.itemCount),
     });
 
     if (error) {
@@ -110,12 +130,20 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
       );
     } else {
       await program.methods
-        .initializeItem(name, description, imageUrl, new anchor.BN(openingBid))
+        .initializeItem(
+          name,
+          description,
+          imageUrl,
+          new anchor.BN(parseFloat(openingBid) * LAMPORTS_PER_SOL),
+          new anchor.BN(parseFloat(minimumIncrement) * LAMPORTS_PER_SOL),
+        )
         .accounts({
           authority: publicKey,
           itemCounterAccount: itemCounterAccountPda,
           itemAccount: itemAccountPda,
-        })
+          escrowAccount: escrowAccountPda,
+          systemProgram: anchor.web3.SystemProgram.programId,
+        } as any)
         .rpc();
       alert("Auction created successfully");
       onClose();

@@ -1,4 +1,4 @@
-drop table public.auctions;
+drop table if exists public.auctions;
 -- Create the table if it doesn't exist
 create table if not exists public.auctions (
   id uuid default gen_random_uuid() primary key,
@@ -10,7 +10,9 @@ create table if not exists public.auctions (
   duration integer,
   minimum_increment numeric,
   highest_bid numeric default 0,
-  creator_wallet text
+  creator_wallet text,
+  item_id numeric,
+  highest_bidder text not null default ''
 );
 
 -- For existing tables, run this:
@@ -29,3 +31,9 @@ create policy "Enable insert for everyone" on public.auctions
 create policy "Enable read for everyone" on public.auctions
   for select
   using (true);
+
+-- Create a policy to allow everyone to update auctions (everyone can bid)
+create policy "Enable update for everyone" on public.auctions
+  for update
+  using (true)
+  with check (true);
