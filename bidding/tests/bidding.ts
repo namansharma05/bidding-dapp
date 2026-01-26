@@ -2,7 +2,7 @@ import * as anchor from "@coral-xyz/anchor";
 import { Program } from "@coral-xyz/anchor";
 import { Bidding } from "../target/types/bidding";
 import NodeWallet from "@coral-xyz/anchor/dist/cjs/nodewallet";
-import { LAMPORTS_PER_SOL } from "@solana/web3.js";
+import { Connection, LAMPORTS_PER_SOL } from "@solana/web3.js";
 
 describe("  solana bidding dapp test cases",() => {
   // Configure the client to use the local cluster.
@@ -54,10 +54,10 @@ describe("  solana bidding dapp test cases",() => {
     const description = "This is the Item description";
     const imageUrl = "https://example.com/image.jpg";
     const price = 1000000000;
-    const minimumBid = 1000000000;
+    const minimumBid = 100000000;
     
     console.log("    admin wallet public key is", adminWallet.publicKey.toBase58());
-    const tx = await program.methods.initializeItem(name, description, imageUrl, new anchor.BN(price/LAMPORTS_PER_SOL), new anchor.BN(minimumBid/LAMPORTS_PER_SOL)).accounts({
+    const tx = await program.methods.initializeItem(name, description, imageUrl, new anchor.BN(price), new anchor.BN(minimumBid)).accounts({
       authority: adminWallet.publicKey,
       itemCounterAccount: itemCounterAccountPda,
       itemAccount: itemAccountPda,
@@ -87,6 +87,18 @@ describe("  solana bidding dapp test cases",() => {
       escrowAccount: escrowAccountPda,
     }).signers([adminWallet]).rpc();
     console.log("    Your transaction signature for bid", tx);
+    const txInfo = await provider.connection.getTransaction(tx, {commitment: "confirmed"});
+    console.log("    transaction 1 fee is", txInfo?.meta?.fee);
     console.log("    escrow account balance after first bidding", await provider.connection.getBalance(escrowAccountPda));
+    
+    const tx2 = await program.methods.bid(itemId).accounts({
+      authority: adminWallet.publicKey,
+      itemAccount: itemAccountPda,
+      escrowAccount: escrowAccountPda,
+    }).signers([adminWallet]).rpc();
+    console.log("    Your transaction signature for bid", tx2);
+    const tx2Info = await provider.connection.getTransaction(tx2, {commitment: "confirmed"});
+    console.log("    transaction 2 fee is", tx2Info?.meta?.fee);
+    console.log("    escrow account balance after second bidding", await provider.connection.getBalance(escrowAccountPda));
   });
 });

@@ -65,4 +65,24 @@ pub mod bidding {
 
         Ok(())
     }
+
+    pub fn transfer_item_to_winner(
+        ctx: Context<TransferItemToWinner>,
+        _item_id: u16,
+        new_authority: Pubkey,
+    ) -> Result<()> {
+        let item_account = &mut ctx.accounts.item_account;
+        let escrow_account = &mut ctx.accounts.escrow_account;
+
+        let cpi_context = CpiContext::new(
+            ctx.accounts.system_program.to_account_info(),
+            anchor_lang::system_program::Transfer {
+                from: escrow_account.to_account_info(),
+                to: item_account.to_account_info(),
+            },
+        );
+        anchor_lang::system_program::transfer(cpi_context, escrow_account.get_lamports())?;
+        item_account.authority = new_authority;
+        Ok(())
+    }
 }
