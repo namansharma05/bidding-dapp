@@ -80,25 +80,45 @@ describe("  solana bidding dapp test cases",() => {
     itemAccountPda = findPda(program.programId, [Buffer.from("item"), new anchor.BN(itemId).toArrayLike(Buffer, "le", 2)]);
     // Note: Escrow PDA in this DApp seems to be derived using the creator's wallet (adminWallet)
     escrowAccountPda = findPda(program.programId, [Buffer.from("escrow"), adminWallet.publicKey.toBuffer(), new anchor.BN(itemId).toArrayLike(Buffer, "le", 2)]);
+    console.log("    admin wallet balance before first bid", await provider.connection.getBalance(adminWallet.publicKey));
     
     const tx = await program.methods.bid(itemId).accounts({
       authority: adminWallet.publicKey,
       itemAccount: itemAccountPda,
       escrowAccount: escrowAccountPda,
+      // itemAuthority: adminWallet.publicKey,
+      previousBidder: adminWallet.publicKey, // The creator is the default bidder for new items
     }).signers([adminWallet]).rpc();
     console.log("    Your transaction signature for bid", tx);
-    const txInfo = await provider.connection.getTransaction(tx, {commitment: "confirmed"});
+    
+    // Wait for transaction confirmation
+    await provider.connection.confirmTransaction(tx, "confirmed");
+    
+    const txInfo = await provider.connection.getTransaction(tx, {
+      commitment: "confirmed",
+      maxSupportedTransactionVersion: 0
+    });
     console.log("    transaction 1 fee is", txInfo?.meta?.fee);
     console.log("    escrow account balance after first bidding", await provider.connection.getBalance(escrowAccountPda));
-    
+    console.log("    admin wallet balance after first bid", await provider.connection.getBalance(adminWallet.publicKey));
     const tx2 = await program.methods.bid(itemId).accounts({
       authority: adminWallet.publicKey,
       itemAccount: itemAccountPda,
       escrowAccount: escrowAccountPda,
+      // itemAuthority: adminWallet.publicKey,
+      previousBidder: adminWallet.publicKey, // Previous bidder is adminWallet
     }).signers([adminWallet]).rpc();
     console.log("    Your transaction signature for bid", tx2);
-    const tx2Info = await provider.connection.getTransaction(tx2, {commitment: "confirmed"});
+    
+    // Wait for transaction confirmation
+    await provider.connection.confirmTransaction(tx2, "confirmed");
+    
+    const tx2Info = await provider.connection.getTransaction(tx2, {
+      commitment: "confirmed",
+      maxSupportedTransactionVersion: 0
+    });
     console.log("    transaction 2 fee is", tx2Info?.meta?.fee);
     console.log("    escrow account balance after second bidding", await provider.connection.getBalance(escrowAccountPda));
+    console.log("    admin wallet balance after second bid", await provider.connection.getBalance(adminWallet.publicKey));
   });
 });

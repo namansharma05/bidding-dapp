@@ -14,6 +14,7 @@ pub struct Item {
     pub item_id: u16,
     pub highest_bid: u64,
     pub minimum_bid: u64,
+    pub highest_bidder: Pubkey,
 }
 
 #[account]

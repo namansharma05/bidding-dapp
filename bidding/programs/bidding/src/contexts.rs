@@ -1,4 +1,5 @@
 use crate::blueprints::*;
+use crate::errors::*;
 use anchor_lang::prelude::*;
 
 #[derive(Accounts)]
@@ -76,6 +77,14 @@ pub struct Bid<'info> {
         bump,
     )]
     pub escrow_account: Account<'info, Escrow>,
+
+    /// CHECK: This account is the previous highest bidder who will receive a refund.
+    /// We verify this matches the address stored in the item_account.
+    #[account(
+        mut,
+        constraint = previous_bidder.key() == item_account.highest_bidder @ BiddingError::InvalidPreviousBidder
+    )]
+    pub previous_bidder: UncheckedAccount<'info>,
 
     pub system_program: Program<'info, System>,
 }
