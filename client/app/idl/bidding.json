@@ -75,6 +75,12 @@
           }
         },
         {
+          "name": "previous_bidder",
+          "docs": [
+            "We verify this matches the address stored in the item_account."
+          ]
+        },
+        {
           "name": "system_program",
           "address": "11111111111111111111111111111111"
         }
@@ -256,6 +262,84 @@
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "transfer_item_to_winner",
+      "discriminator": [
+        119,
+        159,
+        168,
+        32,
+        157,
+        217,
+        16,
+        104
+      ],
+      "accounts": [
+        {
+          "name": "item_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  116,
+                  101,
+                  109
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "item_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrow_account",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "item_account.authority",
+                "account": "Item"
+              },
+              {
+                "kind": "arg",
+                "path": "item_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "_item_id",
+          "type": "u16"
+        },
+        {
+          "name": "new_authority",
+          "type": "pubkey"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -297,6 +381,23 @@
         95,
         17
       ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidPreviousBidder",
+      "msg": "The provided previous bidder does not match the stored highest bidder."
+    },
+    {
+      "code": 6001,
+      "name": "PreviousBidderNotWritable",
+      "msg": "The previous bidder account must be writable to receive the refund."
+    },
+    {
+      "code": 6002,
+      "name": "EscrowNotRentExempt",
+      "msg": "The escrow account would not remain rent exempt after the refund."
     }
   ],
   "types": [
@@ -348,6 +449,10 @@
           {
             "name": "minimum_bid",
             "type": "u64"
+          },
+          {
+            "name": "highest_bidder",
+            "type": "pubkey"
           }
         ]
       }

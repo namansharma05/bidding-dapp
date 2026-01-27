@@ -31,7 +31,7 @@ describe("  solana bidding dapp test cases",() => {
 
   beforeEach(async() => {
     airDropSol(1000000000, adminWallet);
-    airDropSol(1000000000, secondWallet);
+    airDropSol(5000000000, secondWallet);
     itemCounterAccountPda = findPda(program.programId, [Buffer.from("item_counter")]);
   })
 
@@ -82,14 +82,16 @@ describe("  solana bidding dapp test cases",() => {
     escrowAccountPda = findPda(program.programId, [Buffer.from("escrow"), adminWallet.publicKey.toBuffer(), new anchor.BN(itemId).toArrayLike(Buffer, "le", 2)]);
     console.log("    admin wallet balance before first bid", await provider.connection.getBalance(adminWallet.publicKey));
     
+    // First bid: previousBidder is SystemProgram (read-only is fine)
     const tx = await program.methods.bid(itemId).accounts({
       authority: adminWallet.publicKey,
       itemAccount: itemAccountPda,
       escrowAccount: escrowAccountPda,
-      // itemAuthority: adminWallet.publicKey,
-      previousBidder: adminWallet.publicKey, // The creator is the default bidder for new items
+      previousBidder: anchor.web3.SystemProgram.programId, // The system program is the default bidder for new items
+      systemProgram: anchor.web3.SystemProgram.programId,
     }).signers([adminWallet]).rpc();
-    console.log("    Your transaction signature for bid", tx);
+
+    console.log("    Your transaction signature for first bid", tx);
     
     // Wait for transaction confirmation
     await provider.connection.confirmTransaction(tx, "confirmed");
@@ -101,24 +103,62 @@ describe("  solana bidding dapp test cases",() => {
     console.log("    transaction 1 fee is", txInfo?.meta?.fee);
     console.log("    escrow account balance after first bidding", await provider.connection.getBalance(escrowAccountPda));
     console.log("    admin wallet balance after first bid", await provider.connection.getBalance(adminWallet.publicKey));
-    const tx2 = await program.methods.bid(itemId).accounts({
+
+    // Second bid: previousBidder is adminWallet (must be writable validation)
+    const ix2 = await program.methods.bid(itemId).accounts({
       authority: adminWallet.publicKey,
       itemAccount: itemAccountPda,
       escrowAccount: escrowAccountPda,
-      // itemAuthority: adminWallet.publicKey,
       previousBidder: adminWallet.publicKey, // Previous bidder is adminWallet
-    }).signers([adminWallet]).rpc();
-    console.log("    Your transaction signature for bid", tx2);
+      systemProgram: anchor.web3.SystemProgram.programId,
+    }).instruction();
+
+    // Manually mark previousBidder as writable because IDL says mut: false (to allow SystemProgram)
+    // but in this specific case (refunding a user), it must be writable.
+    ix2.keys.forEach((key) => {
+      if (key.pubkey.equals(adminWallet.publicKey)) {
+        key.isWritable = true;
+      }
+    });
+
+    const tx2 = new anchor.web3.Transaction().add(ix2);
+    const sig2 = await provider.sendAndConfirm(tx2, [adminWallet]);
+
+    console.log("    Your transaction signature for second bid", sig2);
     
     // Wait for transaction confirmation
-    await provider.connection.confirmTransaction(tx2, "confirmed");
+    await provider.connection.confirmTransaction(sig2, "confirmed");
     
-    const tx2Info = await provider.connection.getTransaction(tx2, {
+    const tx2Info = await provider.connection.getTransaction(sig2, {
       commitment: "confirmed",
       maxSupportedTransactionVersion: 0
     });
     console.log("    transaction 2 fee is", tx2Info?.meta?.fee);
     console.log("    escrow account balance after second bidding", await provider.connection.getBalance(escrowAccountPda));
     console.log("    admin wallet balance after second bid", await provider.connection.getBalance(adminWallet.publicKey));
+
+    // Third bid: previousBidder is adminWallet, new bidder is secondWallet
+    const ix3 = await program.methods.bid(itemId).accounts({
+      authority: secondWallet.publicKey,
+      itemAccount: itemAccountPda,
+      escrowAccount: escrowAccountPda,
+      previousBidder: adminWallet.publicKey, // Previous bidder is adminWallet
+      systemProgram: anchor.web3.SystemProgram.programId,
+    }).instruction();
+
+    // Manually mark previousBidder as writable
+    ix3.keys.forEach((key) => {
+      if (key.pubkey.equals(adminWallet.publicKey)) {
+        key.isWritable = true;
+      }
+    });
+
+    const tx3 = new anchor.web3.Transaction().add(ix3);
+    const sig3 = await provider.sendAndConfirm(tx3, [secondWallet]);
+    
+    console.log("    Your transaction signature for third bid", sig3);
+    await provider.connection.confirmTransaction(sig3, "confirmed");
+    console.log("    escrow account balance after third bidding", await provider.connection.getBalance(escrowAccountPda));
+    console.log("    admin wallet balance after third bid (should be refunded)", await provider.connection.getBalance(adminWallet.publicKey));
   });
 });

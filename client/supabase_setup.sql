@@ -12,7 +12,7 @@ create table if not exists public.auctions (
   highest_bid numeric default 0,
   creator_wallet text,
   item_id numeric,
-  highest_bidder text not null default ''
+  highest_bidder text not null default '11111111111111111111111111111111'
 );
 
 -- For existing tables, run this:
