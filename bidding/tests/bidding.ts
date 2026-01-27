@@ -137,6 +137,7 @@ describe("  solana bidding dapp test cases",() => {
     console.log("    escrow account balance after second bidding", await provider.connection.getBalance(escrowAccountPda));
     console.log("    admin wallet balance after second bid", await provider.connection.getBalance(adminWallet.publicKey));
 
+    console.log("    second wallet balance before bidding", await provider.connection.getBalance(secondWallet.publicKey));
     // Third bid: previousBidder is adminWallet, new bidder is secondWallet
     const ix3 = await program.methods.bid(itemId).accounts({
       authority: secondWallet.publicKey,
@@ -160,5 +161,29 @@ describe("  solana bidding dapp test cases",() => {
     await provider.connection.confirmTransaction(sig3, "confirmed");
     console.log("    escrow account balance after third bidding", await provider.connection.getBalance(escrowAccountPda));
     console.log("    admin wallet balance after third bid (should be refunded)", await provider.connection.getBalance(adminWallet.publicKey));
+  });
+
+  it("should transfer item to winner and highest bid amount to the auction creator", async()=> {
+    let itemCounterAccountData = await program.account.itemCounter.fetch(itemCounterAccountPda);
+    const itemId = itemCounterAccountData.itemCount -1;
+
+    const itemAccountPda = findPda(program.programId, [Buffer.from("item"), new anchor.BN(itemId).toArrayLike(Buffer, "le", 2)]);
+    const escrowAccountPda = findPda(program.programId, [Buffer.from("escrow"), adminWallet.publicKey.toBuffer(), new anchor.BN(itemId).toArrayLike(Buffer, "le", 2)]);
+    
+
+    const tx = await program.methods.transferItemToWinner(itemId, secondWallet.publicKey).accounts({
+      authority: adminWallet.publicKey,
+      itemAccount: itemAccountPda,
+      escrowAccount: escrowAccountPda,
+      systemProgram: anchor.web3.SystemProgram.programId,
+    }).signers([adminWallet]).rpc();
+
+    console.log("    Your transaction signature", tx);
+    console.log("    escrow account balance after transfer", await provider.connection.getBalance(escrowAccountPda));
+    console.log("    admin wallet balance after transfer", await provider.connection.getBalance(adminWallet.publicKey));
+    console.log("    second wallet balance after transfer", await provider.connection.getBalance(secondWallet.publicKey));
+
+    const itemAccountData = await program.account.item.fetch(itemAccountPda);
+    console.log("    item new authority is", itemAccountData.authority.toBase58());
   });
 });

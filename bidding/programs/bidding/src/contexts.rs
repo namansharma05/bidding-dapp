@@ -91,6 +91,9 @@ pub struct Bid<'info> {
 #[derive(Accounts)]
 #[instruction(item_id: u16)]
 pub struct TransferItemToWinner<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
     #[account(
         mut,
         seeds = [

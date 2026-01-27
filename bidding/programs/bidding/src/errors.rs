@@ -7,4 +7,6 @@ pub enum BiddingError {
     PreviousBidderNotWritable,
     #[msg("The escrow account would not remain rent exempt after the refund.")]
     EscrowNotRentExempt,
+    #[msg("The winner is not valid")]
+    InvalidNewAuthority,
 }

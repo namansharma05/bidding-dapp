@@ -125,16 +125,28 @@ pub mod bidding {
         new_authority: Pubkey,
     ) -> Result<()> {
         let item_account = &mut ctx.accounts.item_account;
-        let escrow_account = &mut ctx.accounts.escrow_account;
 
-        let cpi_context = CpiContext::new(
-            ctx.accounts.system_program.to_account_info(),
-            anchor_lang::system_program::Transfer {
-                from: escrow_account.to_account_info(),
-                to: item_account.to_account_info(),
-            },
-        );
-        anchor_lang::system_program::transfer(cpi_context, escrow_account.get_lamports())?;
+        if new_authority == anchor_lang::system_program::ID {
+            return err!(BiddingError::InvalidNewAuthority);
+        }
+
+        // we use manual transfer becasue the escrow has data so system_program fails to transfer lamports
+        let escrow_lamports = **ctx
+            .accounts
+            .escrow_account
+            .to_account_info()
+            .try_borrow_lamports()?;
+        **ctx
+            .accounts
+            .escrow_account
+            .to_account_info()
+            .try_borrow_mut_lamports()? -= escrow_lamports;
+        **ctx
+            .accounts
+            .authority
+            .to_account_info()
+            .try_borrow_mut_lamports()? += escrow_lamports;
+
         item_account.authority = new_authority;
         Ok(())
     }
