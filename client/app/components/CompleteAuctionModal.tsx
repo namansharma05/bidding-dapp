@@ -187,15 +187,36 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
         `Error updating auction: ${error.message || JSON.stringify(error)}`,
       );
     } else {
-      await program.methods
+      const itemAccountData = await program.account.item.fetch(itemAccountPda);
+      console.log(
+        "previous bidder: ",
+        itemAccountData.highestBidder.toBase58(),
+      );
+      const inst = await program.methods
         .bid(auction.item_id)
         .accounts({
           authority: publicKey,
           itemCounterAccount: itemCounterAccountPda,
           itemAccount: itemAccountPda,
           escrowAccount: escrowAccountPda,
-        })
-        .rpc();
+          previousBidder: new PublicKey(auction.highest_bidder),
+          systemProgram: anchor.web3.SystemProgram.programId,
+        } as any)
+        .instruction();
+
+      const previousBidderKey = new PublicKey(auction.highest_bidder);
+      // Manually mark previousBidder as writable if it's not the System Program
+      if (!previousBidderKey.equals(anchor.web3.SystemProgram.programId)) {
+        inst.keys.forEach((key) => {
+          if (key.pubkey.equals(previousBidderKey)) {
+            key.isWritable = true;
+          }
+        });
+      }
+
+      const tx = new anchor.web3.Transaction().add(inst);
+      const signature = await provider.sendAndConfirm(tx);
+      console.log("Transaction signature", signature);
       alert("Auction updated successfully");
       console.log(
         "escrow Account balance after bidding: ",

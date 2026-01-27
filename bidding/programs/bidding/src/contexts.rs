@@ -81,7 +81,6 @@ pub struct Bid<'info> {
     /// CHECK: This account is the previous highest bidder who will receive a refund.
     /// We verify this matches the address stored in the item_account.
     #[account(
-        mut,
         constraint = previous_bidder.key() == item_account.highest_bidder @ BiddingError::InvalidPreviousBidder
     )]
     pub previous_bidder: UncheckedAccount<'info>,
@@ -92,6 +91,9 @@ pub struct Bid<'info> {
 #[derive(Accounts)]
 #[instruction(item_id: u16)]
 pub struct TransferItemToWinner<'info> {
+    #[account(mut)]
+    pub authority: Signer<'info>,
+
     #[account(
         mut,
         seeds = [

@@ -81,6 +81,12 @@ export type Bidding = {
           }
         },
         {
+          "name": "previousBidder",
+          "docs": [
+            "We verify this matches the address stored in the item_account."
+          ]
+        },
+        {
           "name": "systemProgram",
           "address": "11111111111111111111111111111111"
         }
@@ -262,6 +268,84 @@ export type Bidding = {
           "type": "u64"
         }
       ]
+    },
+    {
+      "name": "transferItemToWinner",
+      "discriminator": [
+        119,
+        159,
+        168,
+        32,
+        157,
+        217,
+        16,
+        104
+      ],
+      "accounts": [
+        {
+          "name": "itemAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  105,
+                  116,
+                  101,
+                  109
+                ]
+              },
+              {
+                "kind": "arg",
+                "path": "itemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "escrowAccount",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  101,
+                  115,
+                  99,
+                  114,
+                  111,
+                  119
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "item_account.authority",
+                "account": "item"
+              },
+              {
+                "kind": "arg",
+                "path": "itemId"
+              }
+            ]
+          }
+        },
+        {
+          "name": "systemProgram",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "itemId",
+          "type": "u16"
+        },
+        {
+          "name": "newAuthority",
+          "type": "pubkey"
+        }
+      ]
     }
   ],
   "accounts": [
@@ -303,6 +387,23 @@ export type Bidding = {
         95,
         17
       ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "invalidPreviousBidder",
+      "msg": "The provided previous bidder does not match the stored highest bidder."
+    },
+    {
+      "code": 6001,
+      "name": "previousBidderNotWritable",
+      "msg": "The previous bidder account must be writable to receive the refund."
+    },
+    {
+      "code": 6002,
+      "name": "escrowNotRentExempt",
+      "msg": "The escrow account would not remain rent exempt after the refund."
     }
   ],
   "types": [
@@ -354,6 +455,10 @@ export type Bidding = {
           {
             "name": "minimumBid",
             "type": "u64"
+          },
+          {
+            "name": "highestBidder",
+            "type": "pubkey"
           }
         ]
       }
