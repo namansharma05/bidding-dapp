@@ -9,4 +9,6 @@ pub enum BiddingError {
     EscrowNotRentExempt,
     #[msg("The winner is not valid")]
     InvalidNewAuthority,
+    #[msg("The auction creator is not valid")]
+    InvalidAuctionCreator,
 }

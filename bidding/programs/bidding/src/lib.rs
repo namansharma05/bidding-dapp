@@ -143,7 +143,7 @@ pub mod bidding {
             .try_borrow_mut_lamports()? -= escrow_lamports;
         **ctx
             .accounts
-            .authority
+            .auction_creator
             .to_account_info()
             .try_borrow_mut_lamports()? += escrow_lamports;
 
