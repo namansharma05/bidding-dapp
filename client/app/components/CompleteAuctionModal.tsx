@@ -162,36 +162,7 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
         ],
         program.programId,
       );
-    console.log(
-      "escrow Account balance before bidding: ",
-      await provider.connection.getBalance(escrowAccountPda),
-    );
-    const highestBid =
-      auction.highest_bid == 0
-        ? auction.opening_bid
-        : auction.highest_bid + auction.minimum_increment;
-    const { error } = await supabase
-      .from("auctions")
-      .update({
-        highest_bid: Math.ceil((highestBid + Number.EPSILON) * 100) / 100,
-        highest_bidder: publicKey?.toBase58(),
-      })
-      .eq("id", auction.id);
-
-    if (error) {
-      console.error(
-        "Error updating data full:",
-        JSON.stringify(error, null, 2),
-      );
-      alert(
-        `Error updating auction: ${error.message || JSON.stringify(error)}`,
-      );
-    } else {
-      const itemAccountData = await program.account.item.fetch(itemAccountPda);
-      console.log(
-        "previous bidder: ",
-        itemAccountData.highestBidder.toBase58(),
-      );
+    try {
       const inst = await program.methods
         .bid(auction.item_id)
         .accounts({
@@ -216,14 +187,36 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
 
       const tx = new anchor.web3.Transaction().add(inst);
       const signature = await provider.sendAndConfirm(tx);
-      console.log("Transaction signature", signature);
-      alert("Auction updated successfully");
-      console.log(
-        "escrow Account balance after bidding: ",
-        await provider.connection.getBalance(escrowAccountPda),
-      );
-      onBidPlaced();
-      setShowCompleteActiveAuction();
+      if (signature) {
+      } else {
+        alert("Error updating auction");
+      }
+      const highestBid =
+        auction.highest_bid == 0
+          ? auction.opening_bid
+          : auction.highest_bid + auction.minimum_increment;
+      const { error } = await supabase
+        .from("auctions")
+        .update({
+          highest_bid: Math.ceil((highestBid + Number.EPSILON) * 100) / 100,
+          highest_bidder: publicKey?.toBase58(),
+        })
+        .eq("id", auction.id);
+
+      if (error) {
+        console.error(
+          "Error updating data full:",
+          JSON.stringify(error, null, 2),
+        );
+        alert(
+          `Error updating auction: ${error.message || JSON.stringify(error)}`,
+        );
+      } else {
+        onBidPlaced();
+        setShowCompleteActiveAuction();
+      }
+    } catch (error) {
+      console.error("Error while bidding: ", error);
     }
   };
   return (

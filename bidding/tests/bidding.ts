@@ -174,6 +174,7 @@ describe("  solana bidding dapp test cases",() => {
     const tx = await program.methods.transferItemToWinner(itemId, secondWallet.publicKey).accounts({
       authority: adminWallet.publicKey,
       itemAccount: itemAccountPda,
+      auctionCreator: adminWallet.publicKey, // creator of the auction to whom the highest bid amount will be transferred
       escrowAccount: escrowAccountPda,
       systemProgram: anchor.web3.SystemProgram.programId,
     }).signers([adminWallet]).rpc();

@@ -94,6 +94,14 @@ pub struct TransferItemToWinner<'info> {
     #[account(mut)]
     pub authority: Signer<'info>,
 
+    /// CHECK: This account is the creator of auction.
+    /// We verify this matches the address stored in the item_account.
+    #[account(
+        mut,
+        constraint = auction_creator.key() == item_account.authority @ BiddingError::InvalidAuctionCreator
+    )]
+    pub auction_creator: UncheckedAccount<'info>,
+
     #[account(
         mut,
         seeds = [
