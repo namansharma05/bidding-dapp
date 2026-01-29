@@ -277,6 +277,18 @@
       ],
       "accounts": [
         {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "auction_creator",
+          "docs": [
+            "We verify this matches the address stored in the item_account."
+          ],
+          "writable": true
+        },
+        {
           "name": "item_account",
           "writable": true,
           "pda": {
@@ -398,6 +410,16 @@
       "code": 6002,
       "name": "EscrowNotRentExempt",
       "msg": "The escrow account would not remain rent exempt after the refund."
+    },
+    {
+      "code": 6003,
+      "name": "InvalidNewAuthority",
+      "msg": "The winner is not valid"
+    },
+    {
+      "code": 6004,
+      "name": "InvalidAuctionCreator",
+      "msg": "The auction creator is not valid"
     }
   ],
   "types": [
