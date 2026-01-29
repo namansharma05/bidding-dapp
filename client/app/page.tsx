@@ -8,6 +8,7 @@ import * as anchor from "@coral-xyz/anchor";
 import IDL_JSON from "./idl/bidding.json";
 import { Bidding } from "./idl/bidding";
 import { Connection, PublicKey } from "@solana/web3.js";
+import { time } from "console";
 
 interface Auction {
   id: string;
@@ -45,7 +46,7 @@ export default function Home() {
   const wallet = useAnchorWallet();
 
   const settleAuctions = async () => {
-    setSettleAuctionCalled(true);
+    setSettleAuctionCalled(!settleAuctionCalled);
     if (!wallet) return null;
     if (!publicKey) {
       alert("Please connect your wallet");
@@ -66,18 +67,18 @@ export default function Home() {
     const program = new anchor.Program(IDL_JSON as Bidding, provider);
     const timeNow = new Date().getTime();
 
-    console.log(
-      "program id in settle Auctions functions is: ",
-      program.programId.toBase58(),
-    );
-
     auctions.forEach(async (auction) => {
-      console.log("current auction is: ", auction);
-      console.log("current auction id is: ", auction.id);
+      console.log("current time is: ", timeNow);
+      console.log(
+        "auction duration is: ",
+        new Date(auction.created_at).getTime() + auction.duration * 1000,
+      );
       if (
-        new Date(auction.created_at).getTime() + auction.duration < timeNow &&
+        new Date(auction.created_at).getTime() + auction.duration * 1000 <
+          timeNow &&
         auction.settled === false
       ) {
+        console.log("current auction is: ", auction);
         const [itemAccountPda] = anchor.web3.PublicKey.findProgramAddressSync(
           [
             Buffer.from("item"),
@@ -92,14 +93,6 @@ export default function Home() {
             new anchor.BN(auction.item_id).toArrayLike(Buffer, "le", 2),
           ],
           program.programId,
-        );
-        console.log(
-          "item account pda in settle auction function is: ",
-          itemAccountPda.toBase58(),
-        );
-        console.log(
-          "escrow account pda in settle auction function is: ",
-          escrowAccountPda.toBase58(),
         );
         try {
           const sign = await program.methods
@@ -130,11 +123,11 @@ export default function Home() {
                 .from("auctions")
                 .delete()
                 .eq("id", auction.id);
-              console.log({ data, err });
               if (err) {
                 console.error("Error deleting auction", err);
               } else {
                 alert("Auctions settled successfully");
+                () => setSettleAuctionCalled(!settleAuctionCalled);
               }
             }
           } else {
@@ -147,34 +140,31 @@ export default function Home() {
         }
       }
     });
-    setSettleAuctionCalled(false);
   };
 
+  const fetchAuctions = async () => {
+    const { data, error } = await supabase
+      .from("auctions")
+      .select("*")
+      .gt("duration", 0)
+      .order("created_at", { ascending: false });
+
+    if (error) {
+      console.error("Error fetching auctions:", error);
+    } else {
+      setAuctions(data || []);
+    }
+  };
+  const fetchUsers = async () => {
+    const { data, error } = await supabase.from("users").select("*");
+
+    if (error) {
+      console.error("Error fetching users:", error);
+    } else {
+      setUsers(data || []);
+    }
+  };
   useEffect(() => {
-    console.log("inside use effect after settle auctions button clicked");
-    const fetchAuctions = async () => {
-      const { data, error } = await supabase
-        .from("auctions")
-        .select("*")
-        .gt("duration", 0)
-        .order("created_at", { ascending: false });
-
-      if (error) {
-        console.error("Error fetching auctions:", error);
-      } else {
-        setAuctions(data || []);
-      }
-    };
-
-    const fetchUsers = async () => {
-      const { data, error } = await supabase.from("users").select("*");
-
-      if (error) {
-        console.error("Error fetching users:", error);
-      } else {
-        setUsers(data || []);
-      }
-    };
     fetchAuctions();
     fetchUsers();
   }, [isModalOpen, refreshTrigger, settleAuctionCalled]);
