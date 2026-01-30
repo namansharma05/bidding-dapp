@@ -41,12 +41,10 @@ export default function Home() {
   const [auctions, setAuctions] = useState<Auction[]>([]);
   const [users, setUsers] = useState<Users[]>([]);
   const [refreshTrigger, setRefreshTrigger] = useState(0);
-  const [settleAuctionCalled, setSettleAuctionCalled] = useState(false);
 
   const wallet = useAnchorWallet();
 
   const settleAuctions = async () => {
-    setSettleAuctionCalled(!settleAuctionCalled);
     if (!wallet) return null;
     if (!publicKey) {
       alert("Please connect your wallet");
@@ -68,17 +66,11 @@ export default function Home() {
     const timeNow = new Date().getTime();
 
     auctions.forEach(async (auction) => {
-      console.log("current time is: ", timeNow);
-      console.log(
-        "auction duration is: ",
-        new Date(auction.created_at).getTime() + auction.duration * 1000,
-      );
       if (
         new Date(auction.created_at).getTime() + auction.duration * 1000 <
           timeNow &&
         auction.settled === false
       ) {
-        console.log("current auction is: ", auction);
         const [itemAccountPda] = anchor.web3.PublicKey.findProgramAddressSync(
           [
             Buffer.from("item"),
@@ -127,7 +119,7 @@ export default function Home() {
                 console.error("Error deleting auction", err);
               } else {
                 alert("Auctions settled successfully");
-                () => setSettleAuctionCalled(!settleAuctionCalled);
+                setRefreshTrigger((prev) => prev + 1);
               }
             }
           } else {
@@ -167,7 +159,7 @@ export default function Home() {
   useEffect(() => {
     fetchAuctions();
     fetchUsers();
-  }, [isModalOpen, refreshTrigger, settleAuctionCalled]);
+  }, [isModalOpen, refreshTrigger]);
   return (
     <div className="flex flex-col items-center min-h-screen py-10 bg-gray-900 text-white">
       <h1 className="text-4xl font-bold mb-8">
