@@ -1,8 +1,7 @@
-import { useWallet } from "@solana/wallet-adapter-react";
-import { useEffect, useState } from "react";
-import { supabase } from "../utils/supabaseClient";
+import { FC } from "react";
+import ItemCard from "./ItemCard";
 
-interface Users {
+interface UserItems {
   id: string;
   name: string;
   description: string;
@@ -11,28 +10,23 @@ interface Users {
   user_wallet: string;
 }
 
-const Profile = () => {
-  const [users, setUsers] = useState<Users[]>([]);
+interface ProfileProps {
+  userItems: UserItems[];
+}
 
-  const wallet = useWallet();
-  if (!wallet.publicKey) return null;
-
-  useEffect(() => {
-    const fetchUsers = async () => {
-      const { data, error } = await supabase.from("users").select("*");
-
-      if (error) {
-        console.error("Error fetching users:", error);
-      } else {
-        setUsers(data || []);
-      }
-    };
-    fetchUsers();
-  }, []);
+const Profile: FC<ProfileProps> = ({ userItems }) => {
   return (
     <>
       <div className="flex flex-col items-center w-full h-screen py-10 bg-gray-900 text-white">
-        <div className="text-2xl font-bold">{wallet.publicKey.toBase58()}</div>
+        <div className="text-2xl font-bold mb-10">Items Owned</div>
+        {userItems.map((userItem) => (
+          <ItemCard key={userItem.id} userItem={userItem} />
+        ))}
+        {userItems.length === 0 && (
+          <p className="col-span-full text-center text-gray-500">
+            No Items Owned.
+          </p>
+        )}
       </div>
     </>
   );
