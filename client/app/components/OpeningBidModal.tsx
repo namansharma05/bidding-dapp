@@ -17,8 +17,6 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
   isOpen,
   onClose,
 }) => {
-  const fileInputRef = useRef<HTMLInputElement | null>(null);
-  const [isUploading, setIsUploading] = useState(false);
   const [imageUrl, setImageUrl] = useState("");
   const { publicKey } = useWallet();
   const [name, setName] = useState("");

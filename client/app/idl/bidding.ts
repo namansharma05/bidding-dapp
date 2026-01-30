@@ -283,6 +283,18 @@ export type Bidding = {
       ],
       "accounts": [
         {
+          "name": "authority",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "auctionCreator",
+          "docs": [
+            "We verify this matches the address stored in the item_account."
+          ],
+          "writable": true
+        },
+        {
           "name": "itemAccount",
           "writable": true,
           "pda": {
@@ -404,6 +416,16 @@ export type Bidding = {
       "code": 6002,
       "name": "escrowNotRentExempt",
       "msg": "The escrow account would not remain rent exempt after the refund."
+    },
+    {
+      "code": 6003,
+      "name": "invalidNewAuthority",
+      "msg": "The winner is not valid"
+    },
+    {
+      "code": 6004,
+      "name": "invalidAuctionCreator",
+      "msg": "The auction creator is not valid"
     }
   ],
   "types": [

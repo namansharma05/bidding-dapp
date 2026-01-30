@@ -21,7 +21,7 @@ export const WalletContextProvider: FC<{ children: ReactNode }> = ({
 
   const wallets = useMemo(
     () => [new PhantomWalletAdapter(), new SolflareWalletAdapter()],
-    [network],
+    [],
   );
 
   return (
