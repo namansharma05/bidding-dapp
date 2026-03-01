@@ -55,7 +55,10 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
     );
     await provider.connection.confirmTransaction(tx);
 
-    const program = new anchor.Program(IDL_JSON as Bidding, provider);
+    const program = new anchor.Program<Bidding>(
+      IDL_JSON as unknown as Bidding,
+      provider,
+    );
 
     const [itemCounterAccountPda, itemCounterAccountBump] =
       anchor.web3.PublicKey.findProgramAddressSync(
@@ -115,7 +118,7 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
       duration: parseInt(duration),
       minimum_increment: parseFloat(minimumIncrement),
       creator_wallet: publicKey.toBase58(),
-      item_id: parseFloat(itemCounterAccountData.itemCount),
+      item_id: parseFloat(itemCounterAccountData.itemCount as any),
     });
 
     if (error) {
