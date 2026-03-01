@@ -30,17 +30,17 @@ const Store = () => {
   const [auctions, setAuctions] = useState<Auction[]>([]);
 
   const [refreshTrigger, setRefreshTrigger] = useState(0);
+  const [settleError, setSettleError] = useState<string | null>(null);
 
   const wallet = useAnchorWallet();
 
   const settleAuctions = async () => {
-    if (!wallet) return null;
-    if (!publicKey) {
+    if (!wallet || !publicKey) {
       alert("Please connect your wallet");
       return;
     }
 
-    const network = "http://127.0.0.1:8899";
+    const network = "https://api.devnet.solana.com";
     const connection = new Connection(network, "processed");
 
     const provider = new anchor.AnchorProvider(
@@ -49,33 +49,64 @@ const Store = () => {
       anchor.AnchorProvider.defaultOptions(),
     );
 
-    if (!provider) throw "Provider is null";
-
-    const program = new anchor.Program(IDL_JSON as Bidding, provider);
+    const program = new anchor.Program<Bidding>(
+      IDL_JSON as unknown as Bidding,
+      provider,
+    );
     const timeNow = new Date().getTime();
+    let settledCount = 0;
 
-    auctions.forEach(async (auction) => {
-      if (
-        new Date(auction.created_at).getTime() + auction.duration * 1000 <
-          timeNow &&
-        auction.settled === false
-      ) {
-        const [itemAccountPda] = anchor.web3.PublicKey.findProgramAddressSync(
-          [
-            Buffer.from("item"),
-            new anchor.BN(auction.item_id).toArrayLike(Buffer, "le", 2),
-          ],
-          program.programId,
-        );
-        const [escrowAccountPda] = anchor.web3.PublicKey.findProgramAddressSync(
-          [
-            Buffer.from("escrow"),
-            new PublicKey(auction.creator_wallet).toBuffer(),
-            new anchor.BN(auction.item_id).toArrayLike(Buffer, "le", 2),
-          ],
-          program.programId,
-        );
+    setSettleError(null);
+
+    // Use for...of to settle auctions sequentially
+    for (const auction of auctions) {
+      const auctionEndTime =
+        new Date(auction.created_at).getTime() + auction.duration * 1000;
+
+      if (auctionEndTime < timeNow && !auction.settled) {
+        console.log(`Checking auction status: ${auction.name} (${auction.id})`);
+
+        // Case: Auction ended with no bids (highest bidder is System Program)
+        if (auction.highest_bidder === "11111111111111111111111111111111") {
+          console.log(
+            `Auction ${auction.name} ended with no bids. Cleaning up.`,
+          );
+          const { error: deleteError } = await supabase
+            .from("auctions")
+            .delete()
+            .eq("id", auction.id);
+
+          if (deleteError) {
+            console.error(
+              `Error deleting unbid auction ${auction.name}:`,
+              deleteError,
+            );
+            setSettleError(`Failed to clean up unbid auction: ${auction.name}`);
+          } else {
+            settledCount++;
+          }
+          continue; // Skip further settlement logic for this auction
+        }
+
         try {
+          const [itemAccountPda] = anchor.web3.PublicKey.findProgramAddressSync(
+            [
+              Buffer.from("item"),
+              new anchor.BN(auction.item_id).toArrayLike(Buffer, "le", 2),
+            ],
+            program.programId,
+          );
+
+          const [escrowAccountPda] =
+            anchor.web3.PublicKey.findProgramAddressSync(
+              [
+                Buffer.from("escrow"),
+                new PublicKey(auction.creator_wallet).toBuffer(),
+                new anchor.BN(auction.item_id).toArrayLike(Buffer, "le", 2),
+              ],
+              program.programId,
+            );
+
           const sign = await program.methods
             .transferItemToWinner(
               new anchor.BN(auction.item_id),
@@ -84,43 +115,71 @@ const Store = () => {
             .accounts({
               authority: publicKey,
               itemAccount: itemAccountPda,
-              auctionCreator: new PublicKey(auction.creator_wallet), // creator of the auction to whom the highest bid amount will be transferred
+              auctionCreator: new PublicKey(auction.creator_wallet),
               escrowAccount: escrowAccountPda,
               systemProgram: anchor.web3.SystemProgram.programId,
-            })
+            } as any)
             .rpc();
+
           if (sign) {
-            const { error } = await supabase.from("users").insert({
+            // Update Supabase
+            const { error: insertError } = await supabase.from("users").insert({
               name: auction.name,
               description: auction.description,
               image_url: auction.image_url,
               item_price: auction.highest_bid,
               user_wallet: auction.highest_bidder,
             });
-            if (error) {
-              console.error("Error inserting user data:", error);
-            } else {
-              const { data, error: err } = await supabase
-                .from("auctions")
-                .delete()
-                .eq("id", auction.id);
-              if (err) {
-                console.error("Error deleting auction", err);
-              } else {
-                alert("Auctions settled successfully");
-                setRefreshTrigger((prev) => prev + 1);
-              }
+
+            if (insertError) {
+              console.error(
+                `Error inserting user record for ${auction.name}:`,
+                insertError,
+              );
             }
-          } else {
-            console.error(
-              "Not able to settle auction due to no signature received",
-            );
+
+            const { error: deleteError } = await supabase
+              .from("auctions")
+              .delete()
+              .eq("id", auction.id);
+
+            if (deleteError) {
+              console.error(
+                `Error deleting settled auction ${auction.name}:`,
+                deleteError,
+              );
+            } else {
+              settledCount++;
+            }
           }
-        } catch (error) {
-          console.error("Error settling auctions", error);
+        } catch (error: any) {
+          console.error(`Failed to settle auction ${auction.name}:`, error);
+          const msg = error.message || String(error);
+
+          if (msg.includes("AccountNotInitialized")) {
+            // If the account doesn't exist on-chain, it's a ghost record. Delete it from Supabase.
+            console.warn(
+              `Auction ${auction.name} not found on-chain. Cleaning up Supabase.`,
+            );
+            await supabase.from("auctions").delete().eq("id", auction.id);
+            setSettleError(`Cleaned up 'ghost' auction: ${auction.name}`);
+          } else if (
+            msg.includes("no record of a prior credit") ||
+            msg.includes("Attempt to debit")
+          ) {
+            setSettleError("insufficient_sol");
+            break; // Stop loop if we ran out of SOL
+          } else {
+            setSettleError(`Error with ${auction.name}: ${msg}`);
+          }
         }
       }
-    });
+    }
+
+    if (settledCount > 0) {
+      alert(`${settledCount} auctions settled successfully`);
+      setRefreshTrigger((prev) => prev + 1);
+    }
   };
 
   useEffect(() => {
@@ -153,11 +212,35 @@ const Store = () => {
               <div className="flex justify-between items-center mb-8">
                 <h2 className="text-2xl font-bold">Active Auctions</h2>
                 <div
-                  onClick={() => settleAuctions()}
+                  onClick={() => {
+                    setSettleError(null);
+                    settleAuctions();
+                  }}
                   className="h-10 w-40 bg-[#512da8] text-white text-lg font-bold flex items-center justify-center rounded-sm cursor-pointer hover:bg-[#6c44b9]"
                 >
                   Settle Auctions
                 </div>
+                {settleError && (
+                  <div className="flex items-start gap-2 rounded-md bg-red-900/40 border border-red-500 px-3 py-2 text-sm text-red-300 max-w-sm">
+                    <span>❌</span>
+                    {settleError === "insufficient_sol" ? (
+                      <span>
+                        Insufficient SOL to settle. Get devnet SOL from the{" "}
+                        <a
+                          href="https://faucet.solana.com"
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="font-semibold underline hover:text-red-100"
+                        >
+                          Solana Faucet
+                        </a>
+                        .
+                      </span>
+                    ) : (
+                      <span>Error: {settleError}</span>
+                    )}
+                  </div>
+                )}
                 <div
                   onClick={() => setIsModalOpen(true)}
                   className="h-10 w-30 bg-[#512da8] text-white text-lg font-bold flex items-center justify-center rounded-sm cursor-pointer hover:bg-[#6c44b9]"

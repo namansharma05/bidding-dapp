@@ -1,5 +1,5 @@
 import { useAnchorWallet } from "@solana/wallet-adapter-react";
-import { Connection, LAMPORTS_PER_SOL, PublicKey } from "@solana/web3.js";
+import { Connection, PublicKey } from "@solana/web3.js";
 import { FC, useEffect, useState } from "react";
 import * as anchor from "@coral-xyz/anchor";
 import { useWallet } from "@solana/wallet-adapter-react";
@@ -93,13 +93,14 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
     return endTime - now < 0;
   });
   const { publicKey } = useWallet();
+  const [txError, setTxError] = useState<string | null>(null);
 
   const wallet = useAnchorWallet();
 
   const getProvider = async () => {
     if (!wallet) return null;
 
-    const network = "http://127.0.0.1:8899";
+    const network = "https://api.devnet.solana.com";
     const connection = new Connection(network, "processed");
 
     const provider = new anchor.AnchorProvider(
@@ -118,51 +119,50 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
 
     const provider = await getProvider();
     if (!provider) throw "Provider is null";
-    const tx = await provider.connection.requestAirdrop(
-      publicKey,
-      10 * LAMPORTS_PER_SOL,
-    );
-    await provider.connection.confirmTransaction(tx);
 
-    const program = new anchor.Program(IDL_JSON as Bidding, provider);
-
-    const [itemCounterAccountPda, itemCounterAccountBump] =
-      anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("item_counter")],
-        program.programId,
-      );
-    const itemCounterInfo = await provider.connection.getAccountInfo(
-      itemCounterAccountPda,
-    );
-    if (!itemCounterInfo) {
-      await program.methods
-        .initializeCounter()
-        .accounts({
-          authority: publicKey,
-          itemCounterAccount: itemCounterAccountPda,
-        } as any)
-        .rpc();
-    }
-
-    const [itemAccountPda, itemAccountBump] =
-      anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("item"),
-          new anchor.BN(auction.item_id).toArrayLike(Buffer, "le", 2),
-        ],
-        program.programId,
-      );
-
-    const [escrowAccountPda, escrowAccountBump] =
-      anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("escrow"),
-          new PublicKey(auction.creator_wallet).toBuffer(),
-          new anchor.BN(auction.item_id).toArrayLike(Buffer, "le", 2),
-        ],
-        program.programId,
-      );
     try {
+      setTxError(null);
+      const program = new anchor.Program<Bidding>(
+        IDL_JSON as unknown as Bidding,
+        provider,
+      );
+
+      const [itemCounterAccountPda, itemCounterAccountBump] =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [Buffer.from("item_counter")],
+          program.programId,
+        );
+      const itemCounterInfo = await provider.connection.getAccountInfo(
+        itemCounterAccountPda,
+      );
+      if (!itemCounterInfo) {
+        await program.methods
+          .initializeCounter()
+          .accounts({
+            authority: publicKey,
+            itemCounterAccount: itemCounterAccountPda,
+          } as any)
+          .rpc();
+      }
+
+      const [itemAccountPda, itemAccountBump] =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("item"),
+            new anchor.BN(auction.item_id).toArrayLike(Buffer, "le", 2),
+          ],
+          program.programId,
+        );
+
+      const [escrowAccountPda, escrowAccountBump] =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("escrow"),
+            new PublicKey(auction.creator_wallet).toBuffer(),
+            new anchor.BN(auction.item_id).toArrayLike(Buffer, "le", 2),
+          ],
+          program.programId,
+        );
       const inst = await program.methods
         .bid(auction.item_id)
         .accounts({
@@ -189,7 +189,8 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
       const signature = await provider.sendAndConfirm(tx);
       if (signature) {
       } else {
-        alert("Error updating auction");
+        setTxError("Error updating auction: No signature received");
+        return;
       }
       const highestBid =
         auction.highest_bid == 0
@@ -208,15 +209,24 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
           "Error updating data full:",
           JSON.stringify(error, null, 2),
         );
-        alert(
-          `Error updating auction: ${error.message || JSON.stringify(error)}`,
+        setTxError(
+          `Error updating auction record: ${error.message || JSON.stringify(error)}`,
         );
       } else {
         onBidPlaced();
         setShowCompleteActiveAuction();
       }
-    } catch (error) {
+    } catch (error: any) {
       console.error("Error while bidding: ", error);
+      const msg = error.message || String(error);
+      if (
+        msg.includes("no record of a prior credit") ||
+        msg.includes("Attempt to debit an account")
+      ) {
+        setTxError("insufficient_sol");
+      } else {
+        setTxError(msg);
+      }
     }
   };
   return (
@@ -232,6 +242,29 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
                 X
               </button>
             </div>
+
+            {txError && (
+              <div className="mb-4 flex items-start gap-2 rounded-md bg-red-900/40 border border-red-500 px-4 py-3 text-sm text-red-300">
+                <span>❌</span>
+                {txError === "insufficient_sol" ? (
+                  <span>
+                    Your wallet has insufficient SOL to place this bid. Please
+                    top up your wallet at the{" "}
+                    <a
+                      href="https://faucet.solana.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold underline hover:text-red-100"
+                    >
+                      Solana Devnet Faucet
+                    </a>{" "}
+                    and try again.
+                  </span>
+                ) : (
+                  <span>Transaction failed: {txError}</span>
+                )}
+              </div>
+            )}
             <div className="flex flex-row justify-evenly items-center">
               <div className="w-full object-cover rounded-md overflow-hidden mb-4">
                 <img

@@ -1,5 +1,5 @@
 "use client";
-import { FC, useRef, useState } from "react";
+import { FC, useEffect, useRef, useState } from "react";
 import { UploadButton } from "./UploadButton";
 import { supabase } from "../utils/supabaseClient";
 import { useAnchorWallet, useWallet } from "@solana/wallet-adapter-react";
@@ -24,13 +24,26 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
   const [openingBid, setOpeningBid] = useState("");
   const [duration, setDuration] = useState("");
   const [minimumIncrement, setMinimumIncrement] = useState("");
+  const [txError, setTxError] = useState<string | null>(null);
 
   const wallet = useAnchorWallet();
+
+  useEffect(() => {
+    if (isOpen) {
+      setName("");
+      setDescription("");
+      setImageUrl("");
+      setOpeningBid("");
+      setDuration("");
+      setMinimumIncrement("");
+      setTxError(null);
+    }
+  }, [isOpen]);
 
   const getProvider = async () => {
     if (!wallet) return null;
 
-    const network = "http://127.0.0.1:8899";
+    const network = "https://api.devnet.solana.com";
     const connection = new Connection(network, "processed");
 
     const provider = new anchor.AnchorProvider(
@@ -49,88 +62,65 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
 
     const provider = await getProvider();
     if (!provider) throw "Provider is null";
-    const tx = await provider.connection.requestAirdrop(
-      publicKey,
-      10 * LAMPORTS_PER_SOL,
-    );
-    await provider.connection.confirmTransaction(tx);
 
-    const program = new anchor.Program<Bidding>(
-      IDL_JSON as unknown as Bidding,
-      provider,
-    );
-
-    const [itemCounterAccountPda, itemCounterAccountBump] =
-      anchor.web3.PublicKey.findProgramAddressSync(
-        [Buffer.from("item_counter")],
-        program.programId,
+    try {
+      setTxError(null);
+      const program = new anchor.Program<Bidding>(
+        IDL_JSON as unknown as Bidding,
+        provider,
       );
 
-    const itemCounterInfo = await provider.connection.getAccountInfo(
-      itemCounterAccountPda,
-    );
-    if (!itemCounterInfo) {
-      await program.methods
-        .initializeCounter()
-        .accounts({
-          authority: publicKey,
-          itemCounterAccount: itemCounterAccountPda,
-        } as any)
-        .rpc();
-    }
+      const [itemCounterAccountPda, itemCounterAccountBump] =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [Buffer.from("item_counter")],
+          program.programId,
+        );
 
-    const itemCounterAccountData = await program.account.itemCounter.fetch(
-      itemCounterAccountPda,
-    );
+      const itemCounterInfo = await provider.connection.getAccountInfo(
+        itemCounterAccountPda,
+      );
+      if (!itemCounterInfo) {
+        await program.methods
+          .initializeCounter()
+          .accounts({
+            authority: publicKey,
+            itemCounterAccount: itemCounterAccountPda,
+          } as any)
+          .rpc();
+      }
 
-    const [itemAccountPda, itemAccountBump] =
-      anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("item"),
-          new anchor.BN(itemCounterAccountData.itemCount).toArrayLike(
-            Buffer,
-            "le",
-            2,
-          ),
-        ],
-        program.programId,
+      const itemCounterAccountData = await program.account.itemCounter.fetch(
+        itemCounterAccountPda,
       );
 
-    const [escrowAccountPda, escrowAccountBump] =
-      anchor.web3.PublicKey.findProgramAddressSync(
-        [
-          Buffer.from("escrow"),
-          publicKey.toBuffer(),
-          new anchor.BN(itemCounterAccountData.itemCount).toArrayLike(
-            Buffer,
-            "le",
-            2,
-          ),
-        ],
-        program.programId,
-      );
+      const [itemAccountPda, itemAccountBump] =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("item"),
+            new anchor.BN(itemCounterAccountData.itemCount).toArrayLike(
+              Buffer,
+              "le",
+              2,
+            ),
+          ],
+          program.programId,
+        );
 
-    const { error } = await supabase.from("auctions").insert({
-      name,
-      description,
-      image_url: imageUrl,
-      opening_bid: parseFloat(openingBid),
-      duration: parseInt(duration),
-      minimum_increment: parseFloat(minimumIncrement),
-      creator_wallet: publicKey.toBase58(),
-      item_id: parseFloat(itemCounterAccountData.itemCount as any),
-    });
+      const [escrowAccountPda, escrowAccountBump] =
+        anchor.web3.PublicKey.findProgramAddressSync(
+          [
+            Buffer.from("escrow"),
+            publicKey.toBuffer(),
+            new anchor.BN(itemCounterAccountData.itemCount).toArrayLike(
+              Buffer,
+              "le",
+              2,
+            ),
+          ],
+          program.programId,
+        );
 
-    if (error) {
-      console.error(
-        "Error inserting data full:",
-        JSON.stringify(error, null, 2),
-      );
-      alert(
-        `Error creating auction: ${error.message || JSON.stringify(error)}`,
-      );
-    } else {
-      await program.methods
+      const signature = await program.methods
         .initializeItem(
           name,
           description,
@@ -146,8 +136,46 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
           systemProgram: anchor.web3.SystemProgram.programId,
         } as any)
         .rpc();
+
+      if (signature) {
+        const { error: supabaseError } = await supabase
+          .from("auctions")
+          .insert({
+            name,
+            description,
+            image_url: imageUrl,
+            opening_bid: parseFloat(openingBid),
+            duration: parseInt(duration),
+            minimum_increment: parseFloat(minimumIncrement),
+            creator_wallet: publicKey.toBase58(),
+            item_id: parseFloat(itemCounterAccountData.itemCount as any),
+          });
+
+        if (supabaseError) {
+          console.error(
+            "Error inserting data to Supabase:",
+            JSON.stringify(supabaseError, null, 2),
+          );
+          setTxError(
+            `Auction created on chain, but failed to record in database: ${supabaseError.message}`,
+          );
+          return;
+        }
+      }
+
       alert("Auction created successfully");
       onClose();
+    } catch (err: any) {
+      console.error("Error creating auction: ", err);
+      const msg = err.message || String(err);
+      if (
+        msg.includes("no record of a prior credit") ||
+        msg.includes("Attempt to debit an account")
+      ) {
+        setTxError("insufficient_sol");
+      } else {
+        setTxError(msg);
+      }
     }
   };
   return (
@@ -164,6 +192,30 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
                 X
               </button>
             </div>
+
+            {txError && (
+              <div className="mb-4 flex items-start gap-2 rounded-md bg-red-50 border border-red-300 px-4 py-3 text-sm text-red-800">
+                <span>❌</span>
+                {txError === "insufficient_sol" ? (
+                  <span>
+                    Your wallet has insufficient SOL to create an auction.
+                    Please top up your wallet at the{" "}
+                    <a
+                      href="https://faucet.solana.com"
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="font-semibold underline hover:text-red-900"
+                    >
+                      Solana Devnet Faucet
+                    </a>{" "}
+                    and try again.
+                  </span>
+                ) : (
+                  <span>Transaction failed: {txError}</span>
+                )}
+              </div>
+            )}
+
             <div className="grid grid-cols-2 gap-4">
               <div className="flex flex-col items-center justify-between pr-4">
                 <div>
