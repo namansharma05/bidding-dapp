@@ -181,134 +181,183 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
   return (
     <>
       {isOpen && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50">
-          <div className="bg-white p-6 w-4xl rounded-lg">
-            <div className="flex text-black items-center justify-between mb-4">
-              <h2 className="text-lg font-bold">Open Bid</h2>
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-2 md:p-4">
+          <div className="bg-black border border-white text-white p-4 md:p-8 lg:p-6 w-full max-w-4xl rounded-xl shadow-2xl max-h-[95vh] overflow-y-auto transition-all">
+            <div className="flex items-center justify-between pb-3 lg:pb-2 mb-4 lg:mb-2">
+              <h2 className="text-xl md:text-2xl lg:text-lg font-bold">
+                Open New Auction
+              </h2>
               <button
-                className="text-lg rounded-full font-bold cursor-pointer"
+                className="hover:text-black hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold transition-colors cursor-pointer"
                 onClick={onClose}
               >
-                X
+                ✕
               </button>
             </div>
 
             {txError && (
-              <div className="mb-4 flex items-start gap-2 rounded-md bg-red-50 border border-red-300 px-4 py-3 text-sm text-red-800">
-                <span>❌</span>
+              <div className="mb-4 lg:mb-3 flex items-start gap-3 rounded-lg bg-red-50 border border-red-200 px-3 py-3 lg:py-2 text-sm lg:text-xs text-red-800 animate-in fade-in slide-in-from-top-2">
+                <span className="text-lg lg:text-base">⚠️</span>
                 {txError === "insufficient_sol" ? (
-                  <span>
-                    Your wallet has insufficient SOL to create an auction.
-                    Please top up your wallet at the{" "}
+                  <span className="leading-tight">
+                    <strong>Insufficient SOL:</strong> Your wallet needs more
+                    SOL to create an auction. Top up at the{" "}
                     <a
                       href="https://faucet.solana.com"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-semibold underline hover:text-red-900"
+                      className="font-bold underline hover:text-red-600 transition-colors"
                     >
                       Solana Devnet Faucet
                     </a>{" "}
                     and try again.
                   </span>
                 ) : (
-                  <span>Transaction failed: {txError}</span>
+                  <span className="leading-tight">
+                    <strong>Transaction Failed:</strong> {txError}
+                  </span>
                 )}
               </div>
             )}
 
-            <div className="grid grid-cols-2 gap-4">
-              <div className="flex flex-col items-center justify-between pr-4">
-                <div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-8 lg:gap-6 px-4 md:px-8 lg:px-12">
+              {/* Image Section */}
+              <div className="flex flex-col gap-4 items-center">
+                <div className="w-full aspect-square md:h-80 md:w-80 lg:h-64 lg:w-64 relative group mx-auto">
                   {imageUrl ? (
                     <img
-                      className="h-100 w-100 rounded-sm object-cover"
+                      className="h-full w-full rounded-lg object-cover shadow-inner border border-white"
                       src={imageUrl}
-                      alt="Image from Pinata"
+                      alt="Auction entry"
                     />
                   ) : (
-                    <div className="h-100 w-100 bg-gray-100 rounded-sm flex items-center justify-center text-gray-400">
-                      No Image Selected
+                    <div className="h-full w-full bg-black border-2 border-dashed border-white rounded-lg flex flex-col items-center justify-center text-white gap-2">
+                      <svg
+                        className="w-10 h-10 lg:w-8 lg:h-8"
+                        fill="none"
+                        stroke="currentColor"
+                        viewBox="0 0 24 24"
+                      >
+                        <path
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          strokeWidth="2"
+                          d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z"
+                        />
+                      </svg>
+                      <span className="font-medium text-sm lg:text-xs">
+                        No Image uploaded
+                      </span>
                     </div>
                   )}
                 </div>
-                <UploadButton onUploadComplete={(url) => setImageUrl(url)} />
               </div>
-              <div className="flex text-black flex-col gap-4 w-full">
-                <div className="flex items-center gap-2">
-                  <label className="mb-1 font-semibold" htmlFor="name">
-                    Name
+
+              {/* Form Section */}
+              <div className="flex text-white flex-col gap-3 lg:gap-2">
+                <div className="flex flex-col gap-1">
+                  <label
+                    className="text-sm lg:text-sm font-semibold"
+                    htmlFor="name"
+                  >
+                    Item Name
                   </label>
                   <input
-                    className="border border-gray-300 rounded p-2"
+                    className="bg-black border border-white rounded-md p-2 lg:p-1.5 text-sm lg:text-sm focus:ring-2 outline-none"
                     type="text"
                     id="name"
-                    placeholder="Enter Item Names"
+                    placeholder="e.g. Rare Artifact"
                     value={name}
                     onChange={(e) => setName(e.target.value)}
                   />
                 </div>
-                <div className="flex flex-col">
-                  <label className="mb-1 font-semibold" htmlFor="description">
+
+                <div className="flex flex-col gap-1">
+                  <label
+                    className="text-sm lg:text-sm font-semibold"
+                    htmlFor="description"
+                  >
                     Description
                   </label>
                   <textarea
-                    className="border border-gray-300 rounded p-2"
+                    className="bg-black border border-white rounded-md p-2 lg:p-1.5 text-sm lg:text-sm focus:ring-2 outline-none resize-none"
                     id="description"
-                    placeholder="Enter Item Description"
-                    rows={4}
+                    placeholder="Describe item..."
+                    rows={2}
                     value={description}
                     onChange={(e) => setDescription(e.target.value)}
                   />
                 </div>
-                <div className="flex items-center gap-2">
-                  <label className="mb-1 font-semibold" htmlFor="openingBid">
-                    Opening Bid
-                  </label>
-                  <input
-                    className="border border-gray-300 rounded p-2"
-                    type="number"
-                    id="openingBid"
-                    placeholder="Enter Opening Bid"
-                    value={openingBid}
-                    onChange={(e) => setOpeningBid(e.target.value)}
-                  />
+
+                <div className="grid grid-cols-1 lg:grid-cols-2 gap-3 lg:gap-2">
+                  <div className="flex flex-col gap-1">
+                    <label
+                      className="text-sm lg:text-sm font-semibold"
+                      htmlFor="openingBid"
+                    >
+                      Opening Bid (SOL)
+                    </label>
+                    <input
+                      className="bg-black border border-white rounded-md p-2 lg:p-1.5 text-sm lg:text-sm outline-none focus:ring-2 outline-none"
+                      type="number"
+                      id="openingBid"
+                      step="0.1"
+                      placeholder="0.01"
+                      value={openingBid}
+                      onChange={(e) => setOpeningBid(e.target.value)}
+                    />
+                  </div>
+
+                  <div className="flex flex-col gap-1">
+                    <label
+                      className="text-sm lg:text-sm font-semibold"
+                      htmlFor="duration"
+                    >
+                      Duration (Sec)
+                    </label>
+                    <input
+                      className="bg-black border border-white rounded-md p-2 lg:p-1.5 text-sm lg:text-sm outline-none focus:ring-2 outline-none"
+                      type="number"
+                      id="duration"
+                      placeholder="3600"
+                      value={duration}
+                      onChange={(e) => setDuration(e.target.value)}
+                    />
+                  </div>
                 </div>
-                <div className="flex items-center gap-2">
-                  <label className="mb-1 font-semibold" htmlFor="duration">
-                    Duration in seconds
-                  </label>
-                  <input
-                    className="border border-gray-300 rounded p-2"
-                    type="number"
-                    id="duration"
-                    placeholder="Enter Duration"
-                    value={duration}
-                    onChange={(e) => setDuration(e.target.value)}
-                  />
-                </div>
-                <div className="flex items-center gap-2">
+
+                <div className="flex flex-col gap-1">
                   <label
-                    className="mb-1 font-semibold"
-                    htmlFor="Minimum Increment"
+                    className="text-sm lg:text-sm font-semibold"
+                    htmlFor="minimumIncrement"
                   >
-                    Minimum Increment
+                    Min. Increment (SOL)
                   </label>
                   <input
-                    className="border border-gray-300 rounded p-2"
+                    className="bg-black border border-white rounded-md p-2 lg:p-1.5 text-sm lg:text-sm outline-none focus:ring-2 outline-none"
                     type="number"
                     id="minimumIncrement"
-                    placeholder="Enter Minimum Increment"
+                    step="0.05"
+                    placeholder="0.01"
                     value={minimumIncrement}
                     onChange={(e) => setMinimumIncrement(e.target.value)}
                   />
                 </div>
-                <button
-                  onClick={handleSubmit}
-                  className="bg-blue-500 text-white mt-6 font-semibold px-4 py-2 rounded hover:bg-blue-600 self-center"
-                >
-                  Submit
-                </button>
               </div>
+            </div>
+
+            {/* Actions Section */}
+            <div className="mx-20 mt-8 lg:mt-6 pt-6 lg:pt-4 flex flex-col md:flex-row items-center justify-between gap-4 lg:gap-6 px-4 md:px-8">
+              <UploadButton
+                onUploadComplete={(url) => setImageUrl(url)}
+                className="w-full ml-2 md:w-56 h-12 lg:h-10 bg-[#512da8] cursor-pointer hover:bg-gray-700 text-white text-sm lg:text-xs font-bold rounded-lg transition-all active:scale-[0.98] border border-white"
+              />
+              <button
+                onClick={handleSubmit}
+                className="w-full md:w-56 h-12 lg:h-10 bg-[#512da8] cursor-pointer hover:bg-blue-700 text-white text-sm lg:text-xs font-bold rounded-lg transition-all active:scale-[0.98] border border-white"
+              >
+                Start Auction
+              </button>
             </div>
           </div>
         </div>

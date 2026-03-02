@@ -286,7 +286,7 @@ const Store = () => {
                   />
                 ))}
                 {auctions.length === 0 && (
-                  <p className="col-span-full text-center text-gray-500">
+                  <p className="col-span-full text-center text-white">
                     No active auctions found.
                   </p>
                 )}

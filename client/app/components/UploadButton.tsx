@@ -2,14 +2,16 @@ import { useRef, useState } from "react";
 
 export const UploadButton = ({
   onUploadComplete,
+  className,
 }: {
   onUploadComplete: (url: string) => void;
+  className?: string;
 }) => {
   const [isUploading, setIsUploading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement | null>(null);
 
   return (
-    <div className="flex justify-center text-black mt-4">
+    <div className="relative">
       <input
         disabled={isUploading}
         ref={fileInputRef}
@@ -29,12 +31,12 @@ export const UploadButton = ({
           onUploadComplete(signedUrl);
           setIsUploading(false);
         }}
-        className="absolute right-[9999px]"
+        className="hidden"
         type="file"
       />
       <button
         disabled={isUploading}
-        className="bg-blue-500 px-4 py-2 text-white rounded-sm self-center font-semibold"
+        className={className}
         onClick={() => {
           fileInputRef.current?.click();
         }}
