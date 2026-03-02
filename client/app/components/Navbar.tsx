@@ -32,10 +32,10 @@ export const Navbar: FC<NavbarProps> = ({
 
   return (
     <>
-      <nav className="flex items-center justify-between px-6 py-4 bg-gray-800 text-white shadow-md">
+      <nav className="flex items-center justify-between border-b border-white px-6 py-4 bg-black text-white shadow-md">
         <div
           onClick={() => setProfileClicked(false)}
-          className="text-2xl font-bold cursor-pointer hover:opacity-90 transition-opacity"
+          className="text-sm md:text-lg lg:text-xl font-bold cursor-pointer hover:opacity-90 transition-opacity"
         >
           Solana Bidding dApp
         </div>
@@ -43,7 +43,7 @@ export const Navbar: FC<NavbarProps> = ({
           {mounted && connected && (
             <div
               onClick={() => setProfileClicked(true)}
-              className="w-10 h-10 rounded-full bg-gradient-to-r from-blue-500 to-teal-400 flex items-center justify-center text-white font-bold cursor-pointer hover:opacity-90 transition-opacity"
+              className="w-10 h-10 md:w-12 md:h-12 lg:w-12 lg:h-12 rounded-full bg-black border border-white flex items-center justify-center text-white font-bold cursor-pointer hover:opacity-90 transition-opacity"
               title="Profile"
             >
               <svg
