@@ -75,7 +75,7 @@ export const AuctionCard: FC<{
       <div
         onClick={() => setShowCompleteActiveAuction(true)}
         key={auction.id}
-        className="bg-gray-800 rounded-lg p-4 shadow-lg hover:shadow-xl transition-shadow border border-gray-700 flex flex-col"
+        className="bg-black rounded-lg p-4 shadow-lg hover:shadow-xl transition-shadow border border-white flex flex-col"
       >
         {auction.image_url ? (
           <img
@@ -84,44 +84,42 @@ export const AuctionCard: FC<{
             className="w-full h-60 object-cover rounded-md mb-4"
           />
         ) : (
-          <div className="w-full h-48 bg-gray-700 rounded-md mb-4 flex items-center justify-center text-gray-400">
+          <div className="w-full h-48 bg-black border border-white rounded-md mb-4 flex items-center justify-center text-white">
             No Image
           </div>
         )}
         <h3 className="text-xl font-bold mb-1">{auction.name}</h3>
-        <div className="text-xs text-gray-500 mb-2">
+        <div className="text-xs text-white mb-2">
           Listed by:{" "}
-          <span className="text-gray-300" title={auction.creator_wallet}>
+          <span className="text-white" title={auction.creator_wallet}>
             {auction.creator_wallet.slice(0, 6)}......
             {auction.creator_wallet.slice(-6)}
           </span>
         </div>
-        <p className="text-gray-400 text-sm mb-4 line-clamp-2 flex-grow">
+        <p className="text-white text-sm mb-4 line-clamp-2 flex-grow">
           {auction.description}
         </p>
 
-        <div className="border-t border-gray-700 pt-3 space-y-2">
+        <div className="border-t border-white pt-3 space-y-2">
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-400">Time Left:</span>
+            <span className="text-white">Time Left:</span>
             <Countdown
               createdAt={auction.created_at}
               duration={auction.duration}
             />
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-400">Min. Increment:</span>
-            <span className="text-gray-200">
-              {auction.minimum_increment} SOL
-            </span>
+            <span className="text-white">Min. Increment:</span>
+            <span className="text-white">{auction.minimum_increment} SOL</span>
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-400 text-xs">Opening Price:</span>
+            <span className="text-white text-xs">Opening Price:</span>
             <span className="text-green-400 text-lg">
               {auction.opening_bid} SOL
             </span>
           </div>
           <div className="flex justify-between items-center text-sm">
-            <span className="text-gray-400 text-xs">Highest Bid:</span>
+            <span className="text-white text-xs">Highest Bid:</span>
             <span className="text-green-400 text-lg">
               {auction.highest_bid || "No Bids"}
             </span>

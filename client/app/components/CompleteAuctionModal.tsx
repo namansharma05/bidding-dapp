@@ -232,120 +232,154 @@ export const CompleteAuctionModal: FC<CompleteAuctionModalProps> = ({
   return (
     <>
       {showCompleteActiveAuction && (
-        <div className="fixed inset-0 bg-black/50 backdrop-blur-md flex items-center justify-center z-50">
-          <div className="w-4xl bg-gray-800 text-black p-10 rounded-lg">
-            <div className="flex text-black justify-end mb-4">
+        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+          <div className="bg-black border border-white text-white p-4 md:p-8 w-full max-w-4xl rounded-xl shadow-2xl max-h-[95vh] overflow-y-auto transition-all">
+            <div className="flex justify-end mb-4">
               <button
-                className="text-lg text-white rounded-full font-bold cursor-pointer"
+                className="text-gray-400 hover:text-white hover:bg-gray-800 rounded-full w-10 h-10 flex items-center justify-center font-bold transition-colors cursor-pointer text-xl"
                 onClick={setShowCompleteActiveAuction}
               >
-                X
+                ✕
               </button>
             </div>
 
             {txError && (
-              <div className="mb-4 flex items-start gap-2 rounded-md bg-red-900/40 border border-red-500 px-4 py-3 text-sm text-red-300">
-                <span>❌</span>
+              <div className="mb-6 flex items-start gap-3 rounded-lg bg-red-900/20 border border-red-500/50 px-4 py-4 text-sm text-red-200 animate-in fade-in slide-in-from-top-2">
+                <span className="text-lg">⚠️</span>
                 {txError === "insufficient_sol" ? (
-                  <span>
-                    Your wallet has insufficient SOL to place this bid. Please
-                    top up your wallet at the{" "}
+                  <span className="leading-relaxed">
+                    <strong>Insufficient SOL:</strong> Your wallet needs more
+                    SOL to place this bid. Top up at the{" "}
                     <a
                       href="https://faucet.solana.com"
                       target="_blank"
                       rel="noopener noreferrer"
-                      className="font-semibold underline hover:text-red-100"
+                      className="font-bold underline hover:text-red-300 transition-colors"
                     >
                       Solana Devnet Faucet
                     </a>{" "}
                     and try again.
                   </span>
                 ) : (
-                  <span>Transaction failed: {txError}</span>
+                  <span className="leading-relaxed">
+                    <strong>Transaction Failed:</strong> {txError}
+                  </span>
                 )}
               </div>
             )}
-            <div className="flex flex-row justify-evenly items-center">
-              <div className="w-full object-cover rounded-md overflow-hidden mb-4">
-                <img
-                  className="w-[90%] rounded-md"
-                  src={auction.image_url}
-                  alt={auction.name}
-                />
+
+            <div className="flex flex-col lg:flex-row gap-8 lg:gap-12 items-start">
+              {/* Image Section */}
+              <div className="w-full lg:w-1/2 flex justify-center">
+                <div className="w-full max-w-md aspect-square relative group">
+                  <img
+                    className="w-full h-full rounded-xl object-cover shadow-2xl border border-gray-800"
+                    src={auction.image_url}
+                    alt={auction.name}
+                  />
+                </div>
               </div>
-              <div className="w-[100%]">
-                <div className="flex justify-between">
-                  <div className="flex items-center">
-                    <div className="text-gray-400 text-lg pr-2">
-                      Highest Bid:
+
+              {/* Info Section */}
+              <div className="w-full lg:w-1/2 flex flex-col gap-6">
+                <div>
+                  <div className="flex justify-between items-start mb-2">
+                    <h2 className="text-2xl md:text-3xl font-bold text-white break-words">
+                      {auction.name}
+                    </h2>
+                    <div className="text-3xl font-mono">
+                      <Countdown
+                        createdAt={auction.created_at}
+                        duration={auction.duration}
+                        onEnd={() => setIsEnded(true)}
+                      />
                     </div>
-                    <div className="text-green-400 text-lg">
-                      {auction.highest_bid + " SOL" || "No Bids"}
+                  </div>
+
+                  <div className="space-y-4">
+                    <div className="flex flex-wrap gap-x-6 gap-y-2 text-sm">
+                      <div className="flex flex-col">
+                        <span className="text-gray-500 uppercase tracking-wider text-xs font-bold">
+                          Listed By
+                        </span>
+                        <span
+                          className="text-gray-300 font-mono"
+                          title={auction.creator_wallet}
+                        >
+                          {auction.creator_wallet.slice(0, 6)}...
+                          {auction.creator_wallet.slice(-6)}
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-gray-500 uppercase tracking-wider text-xs font-bold">
+                          Highest Bidder
+                        </span>
+                        <span
+                          className="text-gray-300 font-mono"
+                          title={auction.highest_bidder}
+                        >
+                          {auction.highest_bidder.slice(0, 6)}...
+                          {auction.highest_bidder.slice(-6)}
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="grid grid-cols-2 gap-4 bg-gray-900/50 p-4 rounded-lg border border-gray-800">
+                      <div className="flex flex-col">
+                        <span className="text-gray-500 text-xs font-bold uppercase">
+                          Current Bid
+                        </span>
+                        <span className="text-2xl font-bold text-green-400">
+                          {auction.highest_bid}{" "}
+                          <span className="text-sm font-normal">SOL</span>
+                        </span>
+                      </div>
+                      <div className="flex flex-col">
+                        <span className="text-gray-500 text-xs font-bold uppercase">
+                          Min. Increment
+                        </span>
+                        <span className="text-xl font-semibold text-gray-200">
+                          {auction.minimum_increment}{" "}
+                          <span className="text-sm font-normal text-gray-400">
+                            SOL
+                          </span>
+                        </span>
+                      </div>
+                    </div>
+
+                    <div className="flex flex-col">
+                      <span className="text-gray-500 text-xs font-bold uppercase mb-1">
+                        Description
+                      </span>
+                      <p className="text-gray-300 text-base leading-relaxed break-words">
+                        {auction.description}
+                      </p>
+                    </div>
+
+                    <div className="flex items-center gap-2 pt-2 text-sm">
+                      <span className="text-gray-500 font-bold uppercase text-xs">
+                        Opening Price:
+                      </span>
+                      <span className="text-green-500 font-semibold">
+                        {auction.opening_bid} SOL
+                      </span>
                     </div>
                   </div>
-                  <div className="text-2xl justify-end">
-                    <Countdown
-                      createdAt={auction.created_at}
-                      duration={auction.duration}
-                      onEnd={() => setIsEnded(true)}
-                    />
-                  </div>
                 </div>
-                <div className="text-lg text-gray-400">
-                  Listed by:
-                  <span
-                    className="text-gray-300 pl-2"
-                    title={auction.creator_wallet}
+
+                <div className="mt-auto pt-6 border-t border-gray-800">
+                  <button
+                    disabled={isEnded}
+                    onClick={handleBidding}
+                    className={`w-full py-4 rounded-xl font-bold text-lg transition-all active:scale-[0.98] shadow-lg ${
+                      isEnded
+                        ? "bg-gray-800 text-gray-500 cursor-not-allowed border border-gray-700"
+                        : "bg-blue-600 hover:bg-blue-500 text-white shadow-blue-900/20 hover:shadow-blue-600/20"
+                    }`}
                   >
-                    {auction.creator_wallet.slice(0, 6)}......
-                    {auction.creator_wallet.slice(-6)}
-                  </span>
+                    {isEnded ? "Auction Ended" : "Place Bid"}
+                  </button>
                 </div>
-                <div className="text-lg text-gray-400">
-                  Highest bid by:
-                  <span
-                    className="text-gray-300 pl-2"
-                    title={auction.highest_bidder}
-                  >
-                    {auction.highest_bidder.slice(0, 6)}......
-                    {auction.highest_bidder.slice(-6)}
-                  </span>
-                </div>
-                <div className="flex items-center">
-                  <div className="text-lg text-gray-400 pr-2">Item Name:</div>
-                  <div className="text-lg text-gray-300">{auction.name}</div>
-                </div>
-                <div className="flex items-center">
-                  <div className="text-gray-400 text-lg pr-2">
-                    Opening Price:
-                  </div>
-                  <div className="text-green-500 text-lg">
-                    {auction.opening_bid} SOL
-                  </div>
-                </div>
-                <div className="flex items-center text-lg">
-                  <div className="text-gray-400 pr-2">Min. Increment:</div>
-                  <div className="text-gray-200">
-                    {auction.minimum_increment} SOL
-                  </div>
-                </div>
-                <div className="">
-                  <div className="text-gray-400 text-lg">Item Description:</div>
-                  <div className="text-gray-300 text-lg">
-                    {auction.description}
-                  </div>
-                </div>
-                <button
-                  disabled={isEnded}
-                  onClick={handleBidding}
-                  className={`flex justify-end rounded-sm p-2 border-1 transition-colors ${
-                    isEnded
-                      ? "text-gray-600 border-gray-700 cursor-not-allowed bg-gray-800/50"
-                      : "text-gray-300 border-gray-300 hover:bg-gray-700 active:bg-gray-600"
-                  }`}
-                >
-                  {isEnded ? "Auction Ended" : "Bid"}
-                </button>
               </div>
             </div>
           </div>

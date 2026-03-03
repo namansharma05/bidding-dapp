@@ -17,16 +17,20 @@ interface ProfileProps {
 const Profile: FC<ProfileProps> = ({ userItems }) => {
   return (
     <>
-      <div className="flex flex-col items-center w-full h-screen py-10 bg-gray-900 text-white">
-        <div className="text-2xl font-bold mb-10">Items Owned</div>
-        {userItems.map((userItem) => (
-          <ItemCard key={userItem.id} userItem={userItem} />
-        ))}
-        {userItems.length === 0 && (
-          <p className="col-span-full text-center text-gray-500">
-            No Items Owned.
-          </p>
-        )}
+      <div className="flex flex-col items-center w-full h-screen py-10 bg-black text-white">
+        <div className="text-2xl md:4xl lg:4xl font-bold mb-10 transition-all duration-300 ease-in-out">
+          Items Owned
+        </div>
+        <div className="flex flex-col lg:flex-row items-center mx-5 gap-5 transition-all duration-300 ease-in-out">
+          {userItems.map((userItem) => (
+            <ItemCard key={userItem.id} userItem={userItem} />
+          ))}
+          {userItems.length === 0 && (
+            <p className="col-span-full text-center text-white">
+              No Items Owned.
+            </p>
+          )}
+        </div>
       </div>
     </>
   );
