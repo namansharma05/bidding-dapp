@@ -199,55 +199,84 @@ const Store = () => {
     fetchAuctions();
   }, [isModalOpen, refreshTrigger]);
   return (
-    <div className="flex flex-col items-center min-h-screen py-10 bg-gray-900 text-white">
-      <h1 className="text-4xl font-bold mb-8">
+    <div className="flex flex-col items-center min-h-screen py-10 bg-black text-white">
+      <h1 className="text-3xl md:text-4xl lg:text-5xl px-10 text-center font-bold mb-10 transition-ease-in-out duration-300 ">
         Welcome to Solana Bidding dApp
       </h1>
       {!connected ? (
-        <p className="text-gray-400">Connect your wallet to get started.</p>
+        <p className="text-sm md:text-base lg:text-lg text-white transition-ease-in-out duration-300 ">
+          Connect your wallet to get started.
+        </p>
       ) : (
         <>
           <div className="w-full max-w-6xl px-4">
             <div>
-              <div className="flex justify-between items-center mb-8">
-                <h2 className="text-2xl font-bold">Active Auctions</h2>
-                <div
-                  onClick={() => {
-                    setSettleError(null);
-                    settleAuctions();
-                  }}
-                  className="h-10 w-40 bg-[#512da8] text-white text-lg font-bold flex items-center justify-center rounded-sm cursor-pointer hover:bg-[#6c44b9]"
-                >
-                  Settle Auctions
-                </div>
-                {settleError && (
-                  <div className="flex items-start gap-2 rounded-md bg-red-900/40 border border-red-500 px-3 py-2 text-sm text-red-300 max-w-sm">
-                    <span>❌</span>
-                    {settleError === "insufficient_sol" ? (
-                      <span>
-                        Insufficient SOL to settle. Get devnet SOL from the{" "}
-                        <a
-                          href="https://faucet.solana.com"
-                          target="_blank"
-                          rel="noopener noreferrer"
-                          className="font-semibold underline hover:text-red-100"
-                        >
-                          Solana Faucet
-                        </a>
-                        .
-                      </span>
-                    ) : (
-                      <span>Error: {settleError}</span>
-                    )}
+              <div className="flex flex-col md:flex-row justify-between items-center gap-6 mb-10 px-10 ">
+                <h2 className="text-2xl font-bold hidden md:block">
+                  Active Auctions
+                </h2>
+                <div className="flex flex-col md:flex-row items-center gap-4 w-full md:w-auto">
+                  <div
+                    onClick={() => {
+                      setSettleError(null);
+                      settleAuctions();
+                    }}
+                    className="h-12 w-full md:w-48 bg-[#512da8] text-white text-lg font-bold flex items-center justify-center rounded-md cursor-pointer hover:bg-[#6c44b9] transition-all duration-300"
+                  >
+                    Settle Auctions
                   </div>
-                )}
-                <div
-                  onClick={() => setIsModalOpen(true)}
-                  className="h-10 w-30 bg-[#512da8] text-white text-lg font-bold flex items-center justify-center rounded-sm cursor-pointer hover:bg-[#6c44b9]"
-                >
-                  + OpenBid
+                  <div
+                    onClick={() => setIsModalOpen(true)}
+                    className="h-12 w-full md:w-48 bg-[#512da8] text-white text-lg font-bold flex items-center justify-center rounded-md cursor-pointer hover:bg-[#6c44b9] transition-all duration-300"
+                  >
+                    + OpenBid
+                  </div>
                 </div>
               </div>
+
+              {settleError && (
+                <div className="fixed inset-0 bg-black/70 backdrop-blur-sm flex items-center justify-center z-50 p-4">
+                  <div className="bg-gray-900 border border-red-500 rounded-lg p-8 max-w-md w-full shadow-2xl transition-all duration-300 transform scale-100 animate-in fade-in zoom-in">
+                    <div className="flex items-center gap-4 mb-6 text-red-500">
+                      <div className="w-12 h-12 rounded-full bg-red-900/20 flex items-center justify-center border border-red-500/50">
+                        <span className="text-2xl font-bold">!</span>
+                      </div>
+                      <h3 className="text-xl font-bold text-white">
+                        Settlement Error
+                      </h3>
+                    </div>
+
+                    <div className="text-gray-300 mb-8 leading-relaxed">
+                      {settleError === "insufficient_sol" ? (
+                        <p>
+                          Your wallet has insufficient SOL to settle. Please top
+                          up your wallet at the{" "}
+                          <a
+                            href="https://faucet.solana.com"
+                            target="_blank"
+                            rel="noopener noreferrer"
+                            className="text-red-400 font-semibold underline hover:text-red-300 transition-colors"
+                          >
+                            Solana Devnet Faucet
+                          </a>{" "}
+                          before trying again.
+                        </p>
+                      ) : (
+                        <p className="break-words font-mono text-sm bg-black/40 p-3 rounded border border-gray-800">
+                          {settleError}
+                        </p>
+                      )}
+                    </div>
+
+                    <button
+                      onClick={() => setSettleError(null)}
+                      className="w-full py-3 bg-red-600 hover:bg-red-700 text-white font-bold rounded-md transition-colors shadow-lg active:transform active:scale-95"
+                    >
+                      Dismiss
+                    </button>
+                  </div>
+                </div>
+              )}
               <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
                 {auctions.map((auction) => (
                   <AuctionCard
@@ -257,7 +286,7 @@ const Store = () => {
                   />
                 ))}
                 {auctions.length === 0 && (
-                  <p className="col-span-full text-center text-gray-500">
+                  <p className="col-span-full text-center text-white">
                     No active auctions found.
                   </p>
                 )}

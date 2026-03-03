@@ -24,3 +24,41 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* Example 1: Overriding the main button background color */
+/* Base Mobile styles (default) */
+.wallet-adapter-button {
+  background-color: #000000 !important;
+  color: white !important;
+  border-radius: 8px !important;
+  border: 1px solid white !important;
+  height: 36px !important; /* Mobile height */
+  padding: 0 12px !important; /* Mobile padding */
+  font-size: 14px !important; /* Mobile font size */
+  transition: all 0.2s ease-in-out !important;
+}
+
+/* Tablet/Desktop (min-width: 768px) */
+@media (min-width: 768px) {
+  .wallet-adapter-button {
+    height: 48px !important;
+    padding: 0 24px !important;
+    font-size: 16px !important;
+  }
+}
+
+.wallet-adapter-button:hover {
+  background-color: #ffffff !important;
+  color: black !important;
+}
+
+.wallet-adapter-dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.wallet-adapter-dropdown-list {
+  background: #000000 !important;
+  border: 1px solid white !important;
+  color: white !important;
+}
