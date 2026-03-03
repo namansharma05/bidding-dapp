@@ -188,7 +188,7 @@ export const OpeningBidModal: FC<OpeningBidModalProps> = ({
                 Open New Auction
               </h2>
               <button
-                className="hover:text-black hover:bg-gray-100 rounded-full w-8 h-8 flex items-center justify-center font-bold transition-colors cursor-pointer"
+                className="hover:text-black hover:bg-white rounded-full w-8 h-8 flex items-center justify-center font-bold transition-colors cursor-pointer"
                 onClick={onClose}
               >
                 ✕
